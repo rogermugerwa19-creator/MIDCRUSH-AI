@@ -144,7 +144,7 @@ function renderWorkspace(info){
     }
     document.getElementById("newChatButton").addEventListener("click",startNewChat);
     copyReplyButton.addEventListener("click",async()=>{if(!latestReply)return;try{await navigator.clipboard.writeText(latestReply);showToast("Reply copied.");}catch{showToast("Could not copy this reply.");}});
-    async function requestReply(value, continuation=false){
+    async function requestReply(value, continuation=false, imageData=""){
       if(!value||sendButton.disabled)return;
       ensureConversation();
       history.push({role:"user",content:value});
@@ -164,7 +164,7 @@ function renderWorkspace(info){
         const response=await fetch("/api/chat",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({messages:history.slice(-12)})
+          body:JSON.stringify({messages:history.slice(-12),image:imageData||undefined})
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
@@ -260,8 +260,10 @@ function renderWorkspace(info){
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";showImageChoices(value,"edit",attachedImageData);return;
       }
-      if(attachedImageData){showToast("Choose Edit Photo mode to work with an uploaded image.");return;}
-      chatInput.value="";requestReply(value);
+      const imageToAsk=attachedImageData;
+      chatInput.value="";
+      if(imageToAsk){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
+      requestReply(value,false,imageToAsk);
     });
     conversations=readConversations();
     if(conversations.length){
