@@ -175,7 +175,7 @@ function renderWorkspace(info){
         const response=await fetch("/api/chat",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({messages:history.slice(-12),image:imageData||undefined})
+          body:JSON.stringify({messages:history.slice(-12),image:imageData||currentImageData||undefined})
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
