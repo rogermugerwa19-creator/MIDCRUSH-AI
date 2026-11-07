@@ -235,7 +235,7 @@ function renderWorkspace(info){
           const save=document.createElement("a");save.href=data.image;save.download="midcrush-ai-edited.jpg";save.textContent="Save edited photo";save.className="chat-image-download";
           revise.addEventListener("click",()=>{pendingEdit="revise";chatInput.placeholder="Describe the next change...";chatInput.focus();});
           actions.append(revise,save);waiting.appendChild(actions);
-          history.push({role:"assistant",content:"Edited the uploaded photo: "+prompt});
+          history.push({role:"assistant",content:"Suggested photo edit: "+prompt});
         }else{
           waiting.append(document.createTextNode("Your image is ready."));
           const img=document.createElement("img");img.src=data.image;img.alt="AI generated image";img.className="chat-generated-image";waiting.appendChild(img);
