@@ -52,6 +52,7 @@ export async function onRequestPost({ request, env }) {
     form.append("prompt", prompt);
     form.append("width", String(width));
     form.append("height", String(height));
+    form.append("guidance", body.originalImage ? "6" : "5");
 
     if (body.image) {
       let image;
@@ -62,6 +63,17 @@ export async function onRequestPost({ request, env }) {
       }
       if (!image) return json({ error: "Upload a JPG, PNG or WebP image." }, 400);
       form.append("input_image_0", image, "reference-image");
+
+      if (body.originalImage) {
+        let originalImage;
+        try {
+          originalImage = decodeImage(body.originalImage);
+        } catch (error) {
+          return json({ error: "The original reference image is invalid: " + error.message }, 400);
+        }
+        if (!originalImage) return json({ error: "The original reference must be a JPG, PNG or WebP image." }, 400);
+        form.append("input_image_1", originalImage, "original-identity-reference");
+      }
     }
 
     const formResponse = new Response(form);
