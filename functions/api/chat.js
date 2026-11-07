@@ -9,7 +9,7 @@ function json(data, status = 200) {
 
 export async function onRequestPost({ request, env }) {
   if (!env.AI) {
-    return json({ error: "The AI service is not connected yet. Please finish the Workers AI binding in Cloudflare and redeploy." }, 503);
+    return json({ error: "MIDCRUSH AI is temporarily unavailable. Please try again later." }, 503);
   }
 
   let body;
@@ -65,24 +65,10 @@ export async function onRequestPost({ request, env }) {
           : "";
 
     if (!answer) {
-      const firstChoice = Array.isArray(result?.choices) ? result.choices[0] : null;
-      const message = firstChoice?.message;
-      const detail = {
-        choicesType: Array.isArray(result?.choices) ? "array" : typeof result?.choices,
-        choicesCount: Array.isArray(result?.choices) ? result.choices.length : 0,
-        firstChoiceKeys: firstChoice && typeof firstChoice === "object" ? Object.keys(firstChoice).slice(0, 12) : [],
-        messageType: typeof message,
-        messageKeys: message && typeof message === "object" ? Object.keys(message).slice(0, 12) : [],
-        contentType: typeof message?.content
-      };
-      return json({ error: "The AI model returned an unexpected response format.", detail }, 502);
+      return json({ error: "The AI service returned an unexpected response. Please try again." }, 502);
     }
     return json({ response: answer });
   } catch (error) {
-    // Temporary troubleshooting: return a bounded error message, never credentials.
-    const detail = error && typeof error.message === "string"
-      ? error.message.slice(0, 300)
-      : "Unknown Workers AI error";
-    return json({ error: "Workers AI request failed.", detail }, 502);
+    return json({ error: "MIDCRUSH AI is temporarily unavailable. Please try again shortly." }, 502);
   }
 }
