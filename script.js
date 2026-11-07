@@ -209,23 +209,33 @@ function renderWorkspace(info){
     function isImageRequest(value){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
+    function getRequestedAspectRatio(value,fallback){
+      const match=String(value||"").match(/\\b(16\\s*:\\s*9|9\\s*:\\s*16|1\\s*:\\s*1|4\\s*:\\s*3|3\\s*:\\s*2|2\\s*:\\s*3)\\b/);
+      return match?match[1].replace(/\\s/g,""):fallback;
+    }
     function isPhotoEditRequest(value){
-      return /\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|convert|turn|make)\b/i.test(String(value||""));
+      const text=String(value||"").toLowerCase();
+      const action=/\\b(edit\\w*|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean\\s*up|convert|turn|make|add|swap)\\b/i.test(text);
+      const visualDirection=/\\b(sunny|sunlight|daylight|daytime|nighttime|sunset|sunrise|golden hour|brighter|brightness|darker|lighting|cinematic|warm tones|cool tones|vibrant colours|vibrant colors|blurry|sharper|portrait look|landscape look|background|aspect ratio)\\b/i.test(text)||/\\b(16\\s*:\\s*9|9\\s*:\\s*16|1\\s*:\\s*1|4\\s*:\\s*3|3\\s*:\\s*2|2\\s*:\\s*3)\\b/i.test(text);
+      const imageQuestion=/^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare)\\b/i.test(text.trim());
+      return action || (visualDirection && !imageQuestion);
     }
     function hasSpecificPhotoEditDetails(value){
       const text=String(value||"").toLowerCase();
-      const action=/\b(transform|change|replace|remove|erase|recolor|recolour|brighten|darken|enhance|restore|convert|turn|make)\b/i.test(text);
-      const target=/\b(background|sky|lighting|light|weather|rain|daytime|nighttime|sunny|cloudy|road|clothes|shirt|hair|person|people|object|building|car|colour|color|brightness|contrast|blur|sharpness|style|cartoon|anime|3d)\b/i.test(text);
-      const transformation=/\b(into|to|with|without|instead of|look like|more|less)\b/i.test(text);
-      return action && target && transformation || /\b(remove|erase|replace)\s+(the|a|an|this|that|my)\s+\w+/i.test(text) || /\b(make|turn)\s+(this|that|it|the photo|the picture|the image)\s+(look|appear|into|more|less)\b/i.test(text);
+      const action=/\\b(transform|change|replace|remove|erase|recolor|recolour|brighten|darken|enhance|restore|convert|turn|make|add|swap|edit\\w*)\\b/i.test(text);
+      const target=/\\b(background|sky|lighting|light|weather|rain|daytime|daylight|nighttime|sunny|sunlight|cloudy|road|clothes|shirt|hair|person|people|object|building|car|colour|color|brightness|contrast|blur|sharpness|style|cartoon|anime|3d|cinematic|sunset|sunrise)\\b/i.test(text);
+      const transformation=/\\b(into|to|with|without|instead of|look like|more|less|look|effect)\\b/i.test(text);
+      const hasRatio=/\\b(16\\s*:\\s*9|9\\s*:\\s*16|1\\s*:\\s*1|4\\s*:\\s*3|3\\s*:\\s*2|2\\s*:\\s*3)\\b|\\baspect ratio\\b/i.test(text);
+      const hasVisualDirection=/\\b(sunny|sunlight|daylight|daytime|nighttime|sunset|sunrise|golden hour|cinematic|warm tones|cool tones|vibrant colours|vibrant colors)\\b/i.test(text);
+      return (action && target && transformation) || (hasVisualDirection && (target||hasRatio)) || hasRatio || /\\b(remove|erase|replace)\\s+(the|a|an|this|that|my)\\s+\\w+/i.test(text) || /\\b(make|turn)\\s+(this|that|it|the photo|the picture|the image)\\s+(look|appear|into|more|less)\\b/i.test(text);
     }
-    function showEditQuestion(imageData){
+    function showEditQuestion(imageData,initialPrompt=""){
       const image=new Image();
       image.onload=()=>{
         const ratio=image.naturalWidth/image.naturalHeight;
         const choices=[["1:1",1],["16:9",16/9],["9:16",9/16],["4:3",4/3],["3:2",3/2],["2:3",2/3]];
         const best=choices.sort((a,b)=>Math.abs(a[1]-ratio)-Math.abs(b[1]-ratio))[0][0];
-        editSession={originalImage:imageData,currentImage:imageData,prompt:"",ratio:best};
+        editSession={originalImage:imageData,currentImage:imageData,prompt:initialPrompt,ratio:getRequestedAspectRatio(initialPrompt,best)};
         pendingEdit="details";
         const question=document.createElement("div");question.className="reply-bubble";
         question.textContent="What would you like me to change in this photo? For example, the background, lighting, colours, or an object.";
@@ -284,7 +294,7 @@ function renderWorkspace(info){
           const ratio=image.naturalWidth/image.naturalHeight;
           const choices=[["1:1",1],["16:9",16/9],["9:16",9/16],["4:3",4/3],["3:2",3/2],["2:3",2/3]];
           const best=choices.sort((a,b)=>Math.abs(a[1]-ratio)-Math.abs(b[1]-ratio))[0][0];
-          editSession={originalImage:imageData,currentImage:imageData,prompt,ratio:best};
+          editSession={originalImage:imageData,currentImage:imageData,prompt,ratio:getRequestedAspectRatio(prompt,best)};
           showEditConfirmation();
         };
         image.onerror=()=>showToast("Could not read the uploaded photo.");
@@ -324,7 +334,7 @@ function renderWorkspace(info){
         const action=pendingEdit;pendingEdit=null;
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";
-        if(action==="details"){editSession.prompt=value;showEditConfirmation();}
+        if(action==="details"){editSession.prompt=[editSession.prompt,value].filter(Boolean).join(". ");showEditConfirmation();}
         else if(action==="revise"){
           editSession.prompt=value;
           const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent="Applying your next change...";
@@ -350,7 +360,7 @@ function renderWorkspace(info){
           if(editSession&&editSession.currentImage&&pendingEdit==="revise"){
             editSession.prompt=value;showEditConfirmation();
           }else{
-            showEditQuestion(imageToEdit||editSession?.currentImage||"");
+            showEditQuestion(imageToEdit||editSession?.currentImage||"",value);
           }
           return;
         }
