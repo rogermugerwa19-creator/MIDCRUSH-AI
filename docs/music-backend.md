@@ -50,3 +50,26 @@ Do not merge/launch this as a public generation service until the backend is sec
 ## Official ACE-Step references
 - API: https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/API.md
 - Installation: https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/INSTALL.md
+
+
+## Recommended hosting path: RunPod GPU Pod (manual setup required)
+
+A normal GPU Pod is the most straightforward first deployment for this existing ACE-Step REST API adapter. It provides a persistent API process and avoids assuming that a serverless worker can preserve ACE-Step's in-memory task queue between separate status requests.
+
+1. Create a RunPod account and review its current billing terms before adding any payment method or launching compute. This is a paid GPU host, not a free permanent service.
+2. Create a GPU Pod with enough VRAM for the chosen ACE-Step configuration. The official ACE-Step installation guide lists 4 GB VRAM as a minimum for DiT-only mode and 6 GB for LLM+DiT, but model choice, quantization, offloading and performance affect what is practical.
+3. Install ACE-Step 1.5 using its official installation guide and start the REST API on port 8001. Bind the service to the pod's network interface as required by the host.
+4. Enable ACE-Step API authentication with a strong unique API key. Expose only the API port needed by MIDCRUSH; do not publish an unauthenticated generation endpoint.
+5. In Cloudflare Pages, add server-side variables: ACESTEP_API_URL set to the secure reachable API base URL, and ACESTEP_API_KEY set to the same API key. Never put these values in browser code.
+6. Test one short custom-lyrics song, one auto-lyrics song, one instrumental, status polling, audio playback and MP3 download.
+7. Stop the GPU Pod when it is not being used. Compute is billed while running; persistent storage or other resources may have separate charges.
+
+### Cost reference (not a quote)
+
+RunPod's published pricing page currently lists examples including an RTX 3090 Pod from about $0.50/hour on Community Cloud and an L4 Pod around $0.59/hour. Availability, region, storage, taxes and rates can change. A GPU left running continuously at $0.50/hour would be about $12 per day or $360 for 30 days, before any additional charges. Check the live pricing page before launching: https://www.runpod.io/pricing
+
+A serverless endpoint may reduce idle compute charges, but it needs a purpose-built ACE-Step worker and durable task/result handling. Do not point the current polling adapter at a generic serverless endpoint without adapting and testing that protocol first.
+
+### Before proceeding with paid hosting
+
+No RunPod account has been created, no GPU has been launched, and no payment has been authorized. The owner must decide whether paid GPU hosting is acceptable and control the billing account. Do not launch paid compute without that explicit approval.
