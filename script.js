@@ -204,34 +204,61 @@ function renderWorkspace(info){
       reader.readAsDataURL(file);
     });
     chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";});
+    function isImageRequest(value){
+      return /\\b(generate|create|make|draw|design|produce)\\b/i.test(value) && /\\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\\b/i.test(value);
+    }
+    async function generateFromChat(prompt,style,ratio,imageData,waiting,mode){
+      const button=waiting.querySelector(".chat-image-create");
+      if(button){button.disabled=true;button.textContent="Creating...";}
+      const fullPrompt=style==="You decide"?prompt:prompt+", "+style;
+      try{
+        const response=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:fullPrompt,aspectRatio:ratio,image:imageData||undefined})});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"Image request failed.");
+        if(typeof data.image!=="string"||!data.image.startsWith("data:image/"))throw new Error("The image service returned an invalid image.");
+        waiting.replaceChildren();
+        waiting.append(document.createTextNode(mode==="edit"?"Your edited photo is ready.":"Your image is ready."));
+        const img=document.createElement("img");img.src=data.image;img.alt="AI generated image";img.className="chat-generated-image";waiting.appendChild(img);
+        const download=document.createElement("a");download.href=data.image;download.download="midcrush-ai-image.jpg";download.textContent="Save image";download.className="chat-image-download";waiting.appendChild(download);
+        history.push({role:"assistant",content:(mode==="edit"?"Edited the uploaded photo: ":"Generated an image for: ")+prompt+" ("+ratio+")"});
+        persistCurrentConversation();latestReply=history[history.length-1].content;copyReplyButton.disabled=false;
+        if(mode==="edit"){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
+      }catch(error){
+        const message=document.createElement("p");message.className="chat-image-error";message.textContent=error.message||"Could not complete the image request.";
+        waiting.appendChild(message);
+        if(button){button.disabled=false;button.textContent="Try again";}
+      }
+      chatBox.scrollTop=chatBox.scrollHeight;
+    }
+    function showImageChoices(prompt,mode,imageData){
+      const waiting=document.createElement("div");waiting.className="reply-bubble chat-image-choices";
+      const heading=document.createElement("strong");heading.textContent="Before I create it, what style would you like?";
+      const styleLabel=document.createElement("label");styleLabel.textContent="Image style";
+      const style=document.createElement("select");style.className="chat-image-choice";
+      [["You decide","You decide"],["Photorealistic","Photorealistic"],["3D animation","high-quality 3D animated render"],["Anime","anime illustration"],["Digital art","detailed digital artwork"],["Cinematic","cinematic concept art"],["Watercolor","soft watercolor painting"]].forEach(([label,value])=>{const option=document.createElement("option");option.textContent=label;option.value=value;style.appendChild(option);});
+      const ratioLabel=document.createElement("label");ratioLabel.textContent="Aspect ratio";
+      const ratio=document.createElement("select");ratio.className="chat-image-choice";
+      [["Phone / TikTok / Status — 9:16","9:16"],["YouTube / Landscape — 16:9","16:9"],["Square post — 1:1","1:1"],["Classic photo — 4:3","4:3"],["Photo landscape — 3:2","3:2"],["Photo portrait — 2:3","2:3"]].forEach(([label,value])=>{const option=document.createElement("option");option.textContent=label;option.value=value;ratio.appendChild(option);});
+      const create=document.createElement("button");create.type="button";create.className="chat-action chat-image-create";create.textContent="Create image";
+      create.addEventListener("click",()=>generateFromChat(prompt,style.value,ratio.value,imageData,waiting,mode));
+      waiting.append(heading,styleLabel,style,ratioLabel,ratio,create);chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
+    }
     chatForm.addEventListener("submit",async e=>{
       e.preventDefault();
       const value=chatInput.value.trim();
       if(!value||sendButton.disabled)return;
       const mode=chatMode.value;
       if(mode==="edit"&&!attachedImageData){showToast("Add a photo first.");return;}
-      if(mode!=="chat"){
+      if(mode==="generate"||(mode==="chat"&&!attachedImageData&&isImageRequest(value))){
         ensureConversation();
-        const userText=(mode==="generate"?"[Image request] ":"[Photo edit] ")+value;
-        history.push({role:"user",content:userText});
-        persistCurrentConversation();
+        history.push({role:"user",content:"[Image request] "+value});persistCurrentConversation();
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
-        const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent=mode==="generate"?"Generating your image...":"Editing your photo...";chatBox.appendChild(waiting);
-        chatInput.value="";sendButton.disabled=true;chatInput.disabled=true;
-        try{
-          const response=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:value,aspectRatio:"1:1",image:mode==="edit"?attachedImageData:undefined})});
-          const data=await response.json().catch(()=>({}));
-          if(!response.ok)throw new Error(data.error||"Image request failed.");
-          if(typeof data.image!=="string"||!data.image.startsWith("data:image/"))throw new Error("The image service returned an invalid image.");
-          waiting.textContent=mode==="generate"?"Your image is ready.":"Your edited photo is ready.";
-          const img=document.createElement("img");img.src=data.image;img.alt="AI generated image";img.className="chat-generated-image";waiting.appendChild(document.createElement("br"));waiting.appendChild(img);
-          const download=document.createElement("a");download.href=data.image;download.download="midcrush-ai-image.jpg";download.textContent="Save image";download.className="chat-image-download";waiting.appendChild(document.createElement("br"));waiting.appendChild(download);
-          history.push({role:"assistant",content:mode==="generate"?"Generated an image for: "+value:"Edited the uploaded photo: "+value});
-          persistCurrentConversation();latestReply=history[history.length-1].content;copyReplyButton.disabled=false;
-          if(mode==="edit"){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
-        }catch(error){waiting.textContent=error.message||"Could not complete the image request.";history.pop();persistCurrentConversation();}
-        finally{sendButton.disabled=false;chatInput.disabled=false;chatBox.scrollTop=chatBox.scrollHeight;chatInput.focus();}
-        return;
+        chatInput.value="";showImageChoices(value,"generate","");return;
+      }
+      if(mode==="edit"){
+        ensureConversation();history.push({role:"user",content:"[Photo edit] "+value});persistCurrentConversation();
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        chatInput.value="";showImageChoices(value,"edit",attachedImageData);return;
       }
       if(attachedImageData){showToast("Choose Edit Photo mode to work with an uploaded image.");return;}
       chatInput.value="";requestReply(value);
@@ -245,7 +272,7 @@ function renderWorkspace(info){
       renderRecentChats();
     }
   }else if(info.kind==="image"){
-    target.innerHTML='<div class="workspace-card image-workspace"><div class="workspace-label">Create an image from your imagination</div><p class="image-intro">Describe what you want to see. Choose a style, then generate your image.</p><form id="imageForm" class="image-form"><label for="imagePrompt">Image description</label><textarea id="imagePrompt" maxlength="1800" rows="4" placeholder="Example: A small African village at sunset, warm golden light, green hills, detailed scenery..." required></textarea><div class="image-form-bottom"><div class="image-style-field"><label for="imageStyle">Art style</label><select id="imageStyle"><option value="photorealistic, realistic photography">Photorealistic</option><option value="high-quality 3D animated render">3D animation</option><option value="anime illustration">Anime</option><option value="detailed digital artwork">Digital art</option><option value="cinematic concept art">Cinematic</option><option value="soft watercolor painting">Watercolor</option><option value="high-detail fantasy concept art">Fantasy</option><option value="retro futuristic synthwave artwork">Synthwave</option><option value="minimalist vector illustration">Minimalist</option><option value="comic book illustration with bold ink lines">Comic book</option><option value="traditional oil painting with rich brushstrokes">Oil painting</option><option value="pixel art with crisp pixel detail">Pixel art</option><option value="architectural visualization, realistic materials">Architectural render</option><option value="surreal dreamlike fine art">Surreal</option></select></div><div class="image-style-field"><label for="imageRatio">Aspect ratio</label><select id="imageRatio"><option value="1:1">Square (1:1)</option><option value="16:9">Landscape (16:9)</option><option value="9:16">Portrait / phone (9:16)</option><option value="4:3">Classic (4:3)</option><option value="3:2">Photo landscape (3:2)</option><option value="2:3">Photo portrait (2:3)</option></select></div><button type="submit" class="image-generate-button" id="imageGenerateButton"><i data-lucide="sparkles"></i> Generate image</button></div></form><div class="image-status" id="imageStatus" role="status" aria-live="polite">Your generated image will appear here.</div><div class="image-result" id="imageResult" hidden><img id="generatedImage" alt="AI-generated image"><div class="image-result-actions"><a id="downloadImageButton" class="image-download-button" download="midcrush-ai-image.jpg"><i data-lucide="download"></i> Save image</a><button type="button" id="regenerateImageButton" class="image-regenerate-button"><i data-lucide="refresh-cw"></i> Generate again</button><span class="image-model-label">Generated with FLUX.2 klein 4B</span></div></div><div class="image-note">Free usage is limited by Cloudflare&#39;s daily AI allowance. Image generation may stop when the shared daily allowance is used up.</div></div>';
+    target.innerHTML='<div class="workspace-card image-workspace"><div class="workspace-label">Create an image from your imagination</div><p class="image-intro">Describe what you want to see. Choose a style, then generate your image.</p><form id="imageForm" class="image-form"><label for="imagePrompt">Image description</label><textarea id="imagePrompt" maxlength="1800" rows="4" placeholder="Example: A small African village at sunset, warm golden light, green hills, detailed scenery..." required></textarea><div class="image-form-bottom"><div class="image-style-field"><label for="imageStyle">Art style</label><select id="imageStyle"><option value="photorealistic, realistic photography">Photorealistic</option><option value="high-quality 3D animated render">3D animation</option><option value="anime illustration">Anime</option><option value="detailed digital artwork">Digital art</option><option value="cinematic concept art">Cinematic</option><option value="soft watercolor painting">Watercolor</option><option value="high-detail fantasy concept art">Fantasy</option><option value="retro futuristic synthwave artwork">Synthwave</option><option value="minimalist vector illustration">Minimalist</option><option value="comic book illustration with bold ink lines">Comic book</option><option value="traditional oil painting with rich brushstrokes">Oil painting</option><option value="pixel art with crisp pixel detail">Pixel art</option><option value="architectural visualization, realistic materials">Architectural render</option><option value="surreal dreamlike fine art">Surreal</option></select></div><div class="image-style-field"><label for="imageRatio">Aspect ratio</label><select id="imageRatio"><option value="1:1">Square post — 1:1</option><option value="16:9">YouTube / Landscape — 16:9</option><option value="9:16">Phone / TikTok / Status — 9:16</option><option value="4:3">Classic photo — 4:3</option><option value="3:2">Photo landscape — 3:2</option><option value="2:3">Photo portrait — 2:3</option></select></div><button type="submit" class="image-generate-button" id="imageGenerateButton"><i data-lucide="sparkles"></i> Generate image</button></div></form><div class="image-status" id="imageStatus" role="status" aria-live="polite">Your generated image will appear here.</div><div class="image-result" id="imageResult" hidden><img id="generatedImage" alt="AI-generated image"><div class="image-result-actions"><a id="downloadImageButton" class="image-download-button" download="midcrush-ai-image.jpg"><i data-lucide="download"></i> Save image</a><button type="button" id="regenerateImageButton" class="image-regenerate-button"><i data-lucide="refresh-cw"></i> Generate again</button><span class="image-model-label">Generated with FLUX.2 klein 4B</span></div></div><div class="image-note">Free usage is limited by Cloudflare&#39;s daily AI allowance. Image generation may stop when the shared daily allowance is used up.</div></div>';
     const imageForm=document.getElementById("imageForm");
     const imagePrompt=document.getElementById("imagePrompt");
     const imageStyle=document.getElementById("imageStyle");
