@@ -6,3 +6,11 @@
 
 .image-regenerate-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #a58bff55;border-radius:9px;padding:9px 12px;background:#9c7af52a;color:#d0c2ff;font:700 10px var(--font);cursor:pointer}.image-regenerate-button:hover{background:#9c7af544}.image-regenerate-button svg{width:14px;height:14px}
 .chat-tools-row{display:flex;align-items:center;gap:9px;margin:12px 0 8px}.chat-tools-row select{background:#101124;border:1px solid var(--line);border-radius:8px;color:#d9d7eb;padding:9px 11px;font:600 10px var(--font)}.chat-upload-button{display:inline-flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;color:#c7c3dc;font-size:10px;cursor:pointer}.chat-upload-button:hover{border-color:#9277ed;color:#e5dcff}.chat-upload-button svg{width:14px;height:14px}.chat-image-preview{display:flex;align-items:center;gap:10px;margin:8px 0;padding:9px;border:1px solid var(--line);border-radius:9px;background:#101124}.chat-image-preview[hidden]{display:none}.chat-image-preview img{width:64px;height:64px;object-fit:cover;border-radius:7px}.chat-image-preview button{border:0;background:transparent;color:#c5b6ff;font-size:10px;cursor:pointer}.chat-generated-image{display:block;max-width:min(100%,480px);max-height:520px;object-fit:contain;border-radius:9px;margin-top:10px}.chat-image-download{display:inline-block;margin-top:9px;color:#c5b6ff;font-size:10px;text-decoration:none}.chat-image-download:hover{text-decoration:underline}@media(max-width:420px){.chat-tools-row{flex-wrap:wrap}.chat-tools-row select{flex:1;min-width:140px}}
+
+.chat-image-choices{display:grid;gap:8px;min-width:min(100%,300px)}
+.chat-image-choices strong{color:#eee9ff;font-size:12px;margin-bottom:3px}
+.chat-image-choices label{font-size:10px;color:#aaaac1;font-weight:700}
+.chat-image-choice{width:100%;background:#101124;border:1px solid var(--line);border-radius:8px;padding:10px;color:#f5f5ff;font:11px var(--font)}
+.chat-image-create{justify-content:center;margin-top:5px;background:linear-gradient(135deg,#7658d9,#a75fc4);color:white}
+.chat-image-error{color:#ffabb5;font-size:10px;margin:4px 0}
+.chat-image-choices .chat-generated-image{max-width:100%}
