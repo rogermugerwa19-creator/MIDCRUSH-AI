@@ -52,7 +52,7 @@ export async function onRequestPost({ request, env }) {
     form.append("prompt", prompt);
     form.append("width", String(width));
     form.append("height", String(height));
-    form.append("guidance", body.originalImage ? "6" : "5");
+    if (body.isEdit) form.append("guidance", "6");
 
     if (body.image) {
       let image;
