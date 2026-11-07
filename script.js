@@ -210,11 +210,31 @@ function renderWorkspace(info){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
     function isPhotoEditRequest(value){
+      return /\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|convert|turn)\b/i.test(String(value||""));
+    }
+    function hasSpecificPhotoEditDetails(value){
       const text=String(value||"").toLowerCase();
-      const editAction=/\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|convert|turn)\b/i.test(text);
-      const makeOrTurn=/\b(make|turn|change)\s+(this|that|the|my|it|photo|picture|image|background|sky)\b/i.test(text);
-      const visualEdit=/\b(background|sky|lighting|weather|rain|daytime|nighttime|sunny|cloudy|colour|color|brightness|road|clothes|shirt|hair)\b/i.test(text);
-      return editAction || (makeOrTurn && visualEdit) || /\b(make it|make this|make the photo|make the picture|make the image|turn it into|turn this into|replace the background|change the background|remove the background)\b/i.test(text);
+      const action=/\b(transform|change|replace|remove|erase|recolor|recolour|brighten|darken|enhance|restore|convert|turn|make)\b/i.test(text);
+      const target=/\b(background|sky|lighting|light|weather|rain|daytime|nighttime|sunny|cloudy|road|clothes|shirt|hair|person|people|object|building|car|colour|color|brightness|contrast|blur|sharpness|style|cartoon|anime|3d)\b/i.test(text);
+      const transformation=/\b(into|to|with|without|instead of|look like|more|less)\b/i.test(text);
+      return action && target && transformation || /\b(remove|erase|replace)\s+(the|a|an|this|that|my)\s+\w+/i.test(text) || /\b(make|turn)\s+(this|that|it|the photo|the picture|the image)\s+(look|appear|into|more|less)\b/i.test(text);
+    }
+    function showEditQuestion(imageData){
+      const image=new Image();
+      image.onload=()=>{
+        const ratio=image.naturalWidth/image.naturalHeight;
+        const choices=[["1:1",1],["16:9",16/9],["9:16",9/16],["4:3",4/3],["3:2",3/2],["2:3",2/3]];
+        const best=choices.sort((a,b)=>Math.abs(a[1]-ratio)-Math.abs(b[1]-ratio))[0][0];
+        editSession={originalImage:imageData,currentImage:imageData,prompt:"",ratio:best};
+        pendingEdit="details";
+        const question=document.createElement("div");question.className="reply-bubble";
+        question.textContent="What would you like me to change in this photo? For example, the background, lighting, colours, or an object.";
+        chatBox.appendChild(question);chatBox.scrollTop=chatBox.scrollHeight;
+        chatInput.placeholder="Describe the changes you want...";
+        chatInput.focus();
+      };
+      image.onerror=()=>showToast("Could not read the uploaded photo.");
+      image.src=imageData;
     }
     async function generateFromChat(prompt,style,ratio,imageData,waiting,mode){
       const button=waiting.querySelector(".chat-image-create");
@@ -324,8 +344,17 @@ function renderWorkspace(info){
         ensureConversation();history.push({role:"user",content:"[Photo edit] "+value});persistCurrentConversation();
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         const imageToEdit=attachedImageData;
-        chatInput.value="";attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
-        showImageChoices(value,"edit",imageToEdit);return;
+        chatInput.value="";
+        if(imageToEdit){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
+        if(!hasSpecificPhotoEditDetails(value)){
+          if(editSession&&editSession.currentImage&&pendingEdit==="revise"){
+            editSession.prompt=value;showEditConfirmation();
+          }else{
+            showEditQuestion(imageToEdit||editSession?.currentImage||"");
+          }
+          return;
+        }
+        showImageChoices(value,"edit",imageToEdit||editSession?.currentImage||"");return;
       }
       const imageToAsk=attachedImageData;
       chatInput.value="";
