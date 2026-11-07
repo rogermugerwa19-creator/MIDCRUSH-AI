@@ -592,6 +592,10 @@ function renderWorkspace(info){
         <div class="music-result-actions"><a id="musicDownload" class="image-download-button" download="midcrush-music.mp3"><i data-lucide="download"></i> Download MP3</a><button type="button" id="musicNewButton" class="image-regenerate-button"><i data-lucide="plus"></i> Create another</button></div>
         <div class="music-lyrics-result" id="musicLyricsResult" hidden><strong>Generated lyrics</strong><pre id="musicLyricsText"></pre></div>
       </section>
+      <section class="music-history-section" aria-labelledby="musicHistoryHeading">
+        <div class="music-history-heading"><div><span class="section-kicker">YOUR LIBRARY</span><h3 id="musicHistoryHeading">Recent generations</h3></div><button type="button" id="musicClearHistory" class="music-history-clear">Clear history</button></div>
+        <div id="musicHistoryList" class="music-history-list"><p class="music-history-empty">Your completed tracks will appear here on this device.</p></div>
+      </section>
       <p class="music-disclaimer">Music generation is not connected until a secured ACE-Step server is configured. This workspace is being prepared; no generation credits are used while the engine is offline.</p>
     </div>`;
     const musicForm=document.getElementById("musicForm");
@@ -604,6 +608,50 @@ function renderWorkspace(info){
     const musicAudio=document.getElementById("musicAudio");
     const musicDownload=document.getElementById("musicDownload");
     const musicLyricsResult=document.getElementById("musicLyricsResult");
+    const musicHistoryList=document.getElementById("musicHistoryList");
+    const MUSIC_HISTORY_KEY="midcrush_music_history_v1";
+    function readMusicHistory(){
+      try{
+        const items=JSON.parse(localStorage.getItem(MUSIC_HISTORY_KEY)||"[]");
+        return Array.isArray(items)?items.filter(item=>item&&typeof item.id==="string"&&typeof item.audioUrl==="string").slice(0,20):[];
+      }catch{return [];}
+    }
+    function saveMusicHistory(items){
+      try{localStorage.setItem(MUSIC_HISTORY_KEY,JSON.stringify(items.slice(0,20)));}
+      catch{showToast("Could not save music history in this browser.");}
+    }
+    function renderMusicHistory(){
+      const items=readMusicHistory();
+      musicHistoryList.replaceChildren();
+      if(!items.length){
+        const empty=document.createElement("p");empty.className="music-history-empty";
+        empty.textContent="Your completed tracks will appear here on this device.";
+        musicHistoryList.appendChild(empty);return;
+      }
+      items.forEach(item=>{
+        const row=document.createElement("div");row.className="music-history-item";
+        const details=document.createElement("div");details.className="music-history-details";
+        const title=document.createElement("strong");title.textContent=item.title;
+        const meta=document.createElement("span");meta.textContent=item.meta+" · "+new Date(item.createdAt).toLocaleDateString();
+        details.append(title,meta);
+        const actions=document.createElement("div");actions.className="music-history-actions";
+        const play=document.createElement("button");play.type="button";play.className="music-history-play";play.textContent="Play";
+        play.addEventListener("click",()=>{
+          musicAudio.src=item.audioUrl;musicDownload.href=item.audioUrl;musicResult.hidden=false;
+          document.getElementById("musicResultTitle").textContent=item.title;
+          document.getElementById("musicResultMeta").textContent=item.meta;
+          document.getElementById("musicLyricsText").textContent=item.lyrics||"";
+          musicLyricsResult.hidden=!item.lyrics;
+          musicResult.scrollIntoView({behavior:"smooth",block:"nearest"});
+          musicAudio.play().catch(()=>setMusicStatus("Press play to listen to this saved track."));
+        });
+        const remove=document.createElement("button");remove.type="button";remove.className="music-history-remove";remove.textContent="Remove";
+        remove.addEventListener("click",()=>{saveMusicHistory(readMusicHistory().filter(saved=>saved.id!==item.id));renderMusicHistory();});
+        actions.append(play,remove);row.append(details,actions);musicHistoryList.appendChild(row);
+      });
+    }
+    renderMusicHistory();
+    document.getElementById("musicClearHistory").addEventListener("click",()=>{saveMusicHistory([]);renderMusicHistory();});
     const musicTypeInputs=[...musicForm.querySelectorAll('input[name="musicType"]')];
     function selectedMusicType(){return musicTypeInputs.find(input=>input.checked)?.value||"song";}
     musicTypeInputs.forEach(input=>input.addEventListener("change",()=>{
@@ -668,6 +716,9 @@ function renderWorkspace(info){
         const lyricsText=typeof track.lyrics==="string"?track.lyrics:"";
         musicLyricsResult.hidden=!lyricsText||type==="instrumental";
         document.getElementById("musicLyricsText").textContent=lyricsText;
+        const historyItems=readMusicHistory();
+        historyItems.unshift({id:"music_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7),title:type==="instrumental"?"Instrumental track":"AI song",meta:genre+" · "+mood+" · "+duration+" seconds",audioUrl,lyrics:lyricsText,createdAt:Date.now()});
+        saveMusicHistory(historyItems);renderMusicHistory();
         setMusicStatus("Your music is ready. Press play to listen.");
         musicResult.scrollIntoView({behavior:"smooth",block:"nearest"});
         if(window.lucide)lucide.createIcons();
