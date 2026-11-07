@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101126">
+  <meta name="description" content="MIDCRUSH AI — one workspace for chat, images, video, voice, code, documents and more.">
+  <title>MIDCRUSH AI — Create beyond limits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" data-page="home" aria-label="MIDCRUSH AI home">
+        <span class="brand-mark"><i data-lucide="sparkles"></i></span>
+        <span>MIDCRUSH<span class="brand-ai"> AI</span><small>YOUR CREATIVE SPACE</small></span>
+      </a>
+      <button class="new-chat" data-page="chat"><i data-lucide="plus"></i> New conversation</button>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-page="home"><i data-lucide="layout-dashboard"></i><span>Overview</span></button>
+        <button class="nav-item" data-page="chat"><i data-lucide="message-circle"></i><span>AI Chat</span><b class="nav-dot"></b></button>
+        <button class="nav-item" data-page="video"><i data-lucide="clapperboard"></i><span>AI Video</span><span class="soon">SOON</span></button>
+        <button class="nav-item" data-page="image"><i data-lucide="image"></i><span>AI Image</span><span class="soon">SOON</span></button>
+        <button class="nav-item" data-page="voice"><i data-lucide="audio-lines"></i><span>AI Voice</span><span class="soon">SOON</span></button>
+        <button class="nav-item" data-page="coding"><i data-lucide="code-2"></i><span>AI Coding</span><span class="soon">SOON</span></button>
+        <button class="nav-item" data-page="documents"><i data-lucide="file-text"></i><span>Documents</span><span class="soon">SOON</span></button>
+        <button class="nav-item" data-page="music"><i data-lucide="music-2"></i><span>AI Music</span><span class="soon">SOON</span></button>
+        <button class="nav-item" data-page="website"><i data-lucide="panels-top-left"></i><span>Website Builder</span><span class="soon">SOON</span></button>
+        <button class="nav-item" data-page="editing"><i data-lucide="wand-sparkles"></i><span>Photo Editing</span><span class="soon">SOON</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="plan-card"><span class="plan-icon"><i data-lucide="zap"></i></span><div><strong>Creative mode</strong><small>More tools are on the way</small></div></div>
+        <div class="profile"><div class="avatar">M</div><div><strong>MIDCRUSH AI</strong><small>Personal workspace</small></div><i data-lucide="chevron-down"></i></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" id="menuToggle" aria-label="Open menu"><i data-lucide="menu"></i></button>
+        <div class="breadcrumbs"><span>Workspace</span><i data-lucide="chevron-right"></i><strong id="crumbCurrent">Overview</strong></div>
+        <div class="top-actions"><span class="status"><span></span> Platform preview</span><button class="icon-button" aria-label="Notifications"><i data-lucide="bell"></i></button><div class="top-avatar">M</div></div>
+      </header>
+
+      <section class="page active-page" id="homePage">
+        <div class="welcome-row">
+          <div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR AI WORKSPACE</div><h1>Make something<br><span class="gradient-text">extraordinary.</span></h1><p class="welcome-copy">Ideas become reality here. Choose a tool and let your creativity lead.</p></div>
+          <div class="welcome-art" aria-hidden="true"><div class="orb orb-one"></div><div class="orb orb-two"></div><div class="orb-core"><i data-lucide="sparkles"></i></div><span class="art-star star-a">✦</span><span class="art-star star-b">✧</span></div>
+        </div>
+
+        <div class="quick-prompt">
+          <div class="prompt-icon"><i data-lucide="sparkles"></i></div>
+          <div class="prompt-content"><strong>What are we creating today?</strong><span>Start with a question, an idea, or a task.</span></div>
+          <button class="prompt-action" data-page="chat">Start creating <i data-lucide="arrow-up-right"></i></button>
+        </div>
+
+        <div class="section-heading"><div><span class="section-kicker">THE TOOLKIT</span><h2>Explore your AI tools</h2><p>Everything you need to create, build and bring ideas to life.</p></div><span class="tool-count">09 TOOLS</span></div>
+        <div class="tool-grid">
+          <button class="tool-card tool-chat" data-page="chat"><span class="tool-icon"><i data-lucide="messages-square"></i></span><span class="tool-tag">THINK & WRITE</span><strong>AI Chat</strong><small>Brainstorm, ask questions and get help with everyday tasks.</small><span class="tool-link">Open tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-video" data-page="video"><span class="tool-icon"><i data-lucide="clapperboard"></i></span><span class="tool-tag">BRING IDEAS TO LIFE</span><strong>AI Video</strong><small>Turn creative prompts into engaging video concepts.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-image" data-page="image"><span class="tool-icon"><i data-lucide="image"></i></span><span class="tool-tag">IMAGINE & CREATE</span><strong>AI Image</strong><small>Transform descriptions into original visual ideas.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-voice" data-page="voice"><span class="tool-icon"><i data-lucide="audio-waveform"></i></span><span class="tool-tag">SOUND & SPEAK</span><strong>AI Voice</strong><small>Explore voice generation and audio experiences.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-code" data-page="coding"><span class="tool-icon"><i data-lucide="code-2"></i></span><span class="tool-tag">BUILD & DEVELOP</span><strong>AI Coding</strong><small>Get help understanding, writing and improving code.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-docs" data-page="documents"><span class="tool-icon"><i data-lucide="files"></i></span><span class="tool-tag">PLAN & ORGANISE</span><strong>Documents</strong><small>Work on letters, reports, notes and other documents.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-music" data-page="music"><span class="tool-icon"><i data-lucide="music"></i></span><span class="tool-tag">CREATE YOUR SOUND</span><strong>AI Music</strong><small>Explore music ideas, styles and audio creation.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-web" data-page="website"><span class="tool-icon"><i data-lucide="panels-top-left"></i></span><span class="tool-tag">DESIGN & LAUNCH</span><strong>Website Builder</strong><small>Plan and create modern website experiences.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+          <button class="tool-card tool-edit" data-page="editing"><span class="tool-icon"><i data-lucide="wand-sparkles"></i></span><span class="tool-tag">REFINE & REMIX</span><strong>Photo Editing</strong><small>Explore creative edits and image improvements.</small><span class="tool-link">Explore tool <i data-lucide="arrow-up-right"></i></span></button>
+        </div>
+        <div class="bottom-banner"><div class="banner-symbol"><i data-lucide="rocket"></i></div><div><strong>A creative universe, growing every day.</strong><p>We're building more ways to turn your ideas into something real.</p></div><span class="banner-spark">✦</span></div>
+        <footer>© 2026 MIDCRUSH AI <span>Built for curious minds.</span></footer>
+      </section>
+
+      <section class="page tool-page" id="toolPage">
+        <button class="back-link" data-page="home"><i data-lucide="arrow-left"></i> Back to overview</button>
+        <div class="tool-page-heading"><div class="large-tool-icon" id="pageIcon"><i data-lucide="message-circle"></i></div><div><span class="section-kicker" id="pageKicker">THINK & WRITE</span><h1 id="pageTitle">AI Chat</h1><p id="pageDescription">Your thinking partner for ideas, questions and everyday tasks.</p></div></div>
+        <div id="toolWorkspace"></div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="script.js"></script>
+</body>
+</html>
