@@ -7,139 +7,98 @@ function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 }
 
-function getApiBase(env) {
-  const raw = typeof env.ACESTEP_API_URL === "string" ? env.ACESTEP_API_URL.trim() : "";
-  if (!raw) return null;
-
-  try {
-    const url = new URL(raw);
-    if (!["https:", "http:"].includes(url.protocol)) return null;
-    if (url.username || url.password || url.search || url.hash) return null;
-    return url.toString().replace(/\/$/, "");
-  } catch {
-    return null;
-  }
+function getTrebloKey(env) {
+  return typeof env.TREBLO_API_KEY === "string" ? env.TREBLO_API_KEY.trim() : "";
 }
 
-async function callAceStep(env, path, payload) {
-  const base = getApiBase(env);
-  if (!base) throw new Error("Music generation is not configured yet. The ACE-Step API address is missing or invalid.");
-
-  const headers = { "Content-Type": "application/json" };
-  if (env.ACESTEP_API_KEY) headers.Authorization = `Bearer ${env.ACESTEP_API_KEY}`;
-
-  const response = await fetch(base + path, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload)
+async function trebloRequest(env, path, options = {}) {
+  const key = getTrebloKey(env);
+  if (!key) throw new Error("Treblo is not connected yet. Add TREBLO_API_KEY as a server-side Cloudflare secret.");
+  const response = await fetch("https://api.treblo.com/v1" + path, {
+    ...options,
+    headers: {
+      Authorization: "Bearer " + key,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
   });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || (data.code && data.code !== 200)) {
-    throw new Error("The music engine could not complete that request. Please try again later.");
+  const raw = await response.text();
+  let data;
+  try { data = raw ? JSON.parse(raw) : {}; } catch { data = raw; }
+  if (!response.ok) {
+    const message = data && typeof data === "object" && typeof data.detail === "string"
+      ? data.detail
+      : "Treblo could not complete the request. Check the API account's available credits and try again.";
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
 
+function errorResponse(error) {
+  if (/not connected/i.test(error?.message || "")) return json({ error: error.message }, 503);
+  if (error?.status === 401 || error?.status === 403) return json({ error: "Treblo rejected the API key. Check the server-side secret." }, 502);
+  if (error?.status === 402 || error?.status === 429) return json({ error: "Treblo has reported a credit or request limit. Check the account balance and limits." }, 429);
+  return json({ error: "The music service is temporarily unavailable. Please try again later." }, 502);
+}
+
 export async function onRequestPost({ request, env }) {
   let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Please send a valid music request." }, 400);
-  }
+  try { body = await request.json(); }
+  catch { return json({ error: "Please send a valid music request." }, 400); }
 
   if (body.action === "create") {
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
     const lyrics = typeof body.lyrics === "string" ? body.lyrics.trim() : "";
-    const type = body.type === "instrumental" ? "instrumental" : "song";
-
+    const instrumental = body.type === "instrumental";
     if (!prompt) return json({ error: "Describe the music you want to create." }, 400);
     if (prompt.length > 1200) return json({ error: "Keep the music description under 1,200 characters." }, 400);
     if (lyrics.length > 6000) return json({ error: "Keep the lyrics under 6,000 characters." }, 400);
-
-    const duration = Number.isFinite(Number(body.duration))
-      ? Math.min(180, Math.max(10, Number(body.duration)))
-      : 60;
-    let bpm;
-    if (body.bpm !== "" && body.bpm != null) {
-      const requestedBpm = Number(body.bpm);
-      if (!Number.isFinite(requestedBpm) || requestedBpm < 30 || requestedBpm > 300) {
-        return json({ error: "Tempo must be a number between 30 and 300 BPM." }, 400);
-      }
-      bpm = Math.round(requestedBpm);
-    }
+    if (instrumental && lyrics) return json({ error: "Remove the lyrics field for an instrumental track." }, 400);
 
     const payload = {
-      lyrics: type === "instrumental" ? "" : lyrics,
-      thinking: type === "song",
-      audio_format: "mp3",
-      audio_duration: duration,
-      inference_steps: 8,
-      batch_size: 1,
-      task_type: "text2music"
+      prompt,
+      instrumental,
+      output_format: "mp3"
     };
-
-    if (type === "song" && !lyrics) {
-      payload.sample_query = prompt;
-    } else {
-      payload.prompt = type === "instrumental"
-        ? prompt + ", instrumental music only, no vocals, no singing"
-        : prompt;
-    }
-    if (bpm !== undefined) payload.bpm = bpm;
+    if (!instrumental && lyrics) payload.lyrics = lyrics;
 
     try {
-      const result = await callAceStep(env, "/release_task", payload);
-      const taskId = result?.data?.task_id;
-      if (typeof taskId !== "string" || !taskId) {
-        return json({ error: "The music engine did not return a generation task. Please try again." }, 502);
+      const result = await trebloRequest(env, "/generations/v3", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      if (typeof result?.task_id !== "string" || !result.task_id) {
+        return json({ error: "Treblo did not return a generation task ID." }, 502);
       }
-      return json({
-        taskId,
-        status: result.data.status || "queued",
-        queuePosition: result.data.queue_position ?? null
-      }, 202);
-    } catch (error) {
-      const message = error?.message || "";
-      const status = /not configured/i.test(message) ? 503 : 502;
-      return json({ error: status === 503 ? message : "The music engine is temporarily unavailable. Please try again later." }, status);
-    }
+      return json({ taskId: result.task_id, status: "RECEIVED" }, 202);
+    } catch (error) { return errorResponse(error); }
   }
 
   if (body.action === "status") {
     const taskId = typeof body.taskId === "string" ? body.taskId.trim() : "";
-    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) {
-      return json({ error: "The music task ID is invalid." }, 400);
-    }
-
+    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) return json({ error: "The music task ID is invalid." }, 400);
     try {
-      const result = await callAceStep(env, "/query_result", { task_id_list: [taskId] });
-      const item = Array.isArray(result?.data)
-        ? result.data.find(entry => entry?.task_id === taskId)
-        : null;
-      if (!item) return json({ error: "The music task could not be found." }, 404);
+      const statusResult = await trebloRequest(env, "/generations/status/" + encodeURIComponent(taskId));
+      const status = typeof statusResult === "string" ? statusResult : statusResult?.status;
+      if (status === "FAILURE") return json({ status: 2, result: [] });
+      if (status !== "SUCCESS") return json({ status: 0, result: [], providerStatus: status || "GENERATING" });
 
-      let details = item.result;
-      if (typeof details === "string") {
-        try { details = JSON.parse(details); } catch { details = []; }
-      }
-      if (!Array.isArray(details)) details = [];
-
+      const generation = await trebloRequest(env, "/generations/" + encodeURIComponent(taskId));
+      const paths = Array.isArray(generation?.song_paths) ? generation.song_paths : [];
+      const file = paths.find(path => typeof path === "string" && path.startsWith("https://cdn.treblo.com/"));
+      if (!file) return json({ error: "Treblo completed the song but did not return a recognized audio URL." }, 502);
       return json({
-        taskId,
-        status: Number(item.status),
-        result: details.map(track => ({
-          status: Number(track.status),
-          file: typeof track.file === "string" ? track.file : "",
-          lyrics: typeof track.lyrics === "string" ? track.lyrics : "",
-          prompt: typeof track.prompt === "string" ? track.prompt : "",
-          metadata: track.metas && typeof track.metas === "object" ? track.metas : {}
-        }))
+        status: 1,
+        result: [{
+          status: 1,
+          file,
+          lyrics: typeof generation.lyrics === "string" ? generation.lyrics : "",
+          prompt: typeof generation.prompt === "string" ? generation.prompt : ""
+        }]
       });
-    } catch {
-      return json({ error: "Could not check the music generation status. Please try again." }, 502);
-    }
+    } catch (error) { return errorResponse(error); }
   }
 
   return json({ error: "Unknown music action." }, 400);
