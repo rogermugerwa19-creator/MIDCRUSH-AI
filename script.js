@@ -210,7 +210,11 @@ function renderWorkspace(info){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
     function isPhotoEditRequest(value){
-      return /\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|make it|turn it into|convert)\b/i.test(value) || /\b(background|sky|lighting|weather|rain|daytime|nighttime|sunny|dry roads?)\b/i.test(value);
+      const text=String(value||"").toLowerCase();
+      const editAction=/\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|convert|turn)\b/i.test(text);
+      const makeOrTurn=/\b(make|turn|change)\s+(this|that|the|my|it|photo|picture|image|background|sky)\b/i.test(text);
+      const visualEdit=/\b(background|sky|lighting|weather|rain|daytime|nighttime|sunny|cloudy|colour|color|brightness|road|clothes|shirt|hair)\b/i.test(text);
+      return editAction || (makeOrTurn && visualEdit) || /\b(make it|make this|make the photo|make the picture|make the image|turn it into|turn this into|replace the background|change the background|remove the background)\b/i.test(text);
     }
     async function generateFromChat(prompt,style,ratio,imageData,waiting,mode){
       const button=waiting.querySelector(".chat-image-create");
