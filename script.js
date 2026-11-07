@@ -285,7 +285,7 @@ function renderWorkspace(info){
       panel.setAttribute("role","status");
       panel.setAttribute("aria-live","polite");
       const heading=document.createElement("strong");
-      heading.textContent="Generating your image";
+      heading.textContent=mode==="edit"?"Editing your photo":"Creating your image";
       const detail=document.createElement("span");
       detail.className="generation-progress-detail";
       detail.textContent="Your request has been sent to the AI model. The result will appear here when it is ready.";
