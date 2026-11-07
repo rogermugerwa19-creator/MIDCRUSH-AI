@@ -48,6 +48,7 @@ function renderWorkspace(info){
     let currentChatId=null;
     let history=[];
     let latestReply="";
+    let pendingEdit=null;
     function readConversations(){
       try{
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
@@ -231,6 +232,17 @@ function renderWorkspace(info){
       chatBox.scrollTop=chatBox.scrollHeight;
     }
     function showImageChoices(prompt,mode,imageData){
+      if(mode==="edit"){
+        pendingEdit={prompt,imageData};
+        const question=document.createElement("div");
+        question.className="reply-bubble";
+        question.textContent="What aspect ratio would you like? Reply with 9:16 (phone/Status), 16:9 (YouTube), 1:1 (square), 4:3, 3:2 or 2:3. I’ll choose the editing style for you.";
+        chatBox.appendChild(question);
+        chatBox.scrollTop=chatBox.scrollHeight;
+        chatInput.placeholder="Enter an aspect ratio, e.g. 9:16...";
+        chatInput.focus();
+        return;
+      }
       const waiting=document.createElement("div");waiting.className="reply-bubble chat-image-choices";
       const heading=document.createElement("strong");heading.textContent="Before I create it, what style would you like?";
       const styleLabel=document.createElement("label");styleLabel.textContent="Image style";
@@ -248,6 +260,17 @@ function renderWorkspace(info){
       const value=chatInput.value.trim();
       if(!value||sendButton.disabled)return;
       const mode=chatMode.value;
+      if(pendingEdit){
+        const match=value.match(/(1:1|16:9|9:16|4:3|3:2|2:3)/);
+        if(!match){showToast("Please reply with a ratio such as 9:16 or 16:9.");return;}
+        const edit=pendingEdit;pendingEdit=null;
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        chatInput.value="";chatInput.placeholder="Describe how to edit your photo...";
+        const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent="Editing your photo...";
+        chatBox.appendChild(waiting);
+        generateFromChat(edit.prompt,"You decide",match[1],edit.imageData,waiting,"edit");
+        return;
+      }
       if(mode==="edit"&&!attachedImageData){showToast("Add a photo first.");return;}
       if(mode==="generate"||(mode==="chat"&&!attachedImageData&&isImageRequest(value))){
         ensureConversation();
