@@ -205,7 +205,7 @@ function renderWorkspace(info){
     });
     chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";});
     function isImageRequest(value){
-      return /\\b(generate|create|make|draw|design|produce)\\b/i.test(value) && /\\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\\b/i.test(value);
+      return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
     async function generateFromChat(prompt,style,ratio,imageData,waiting,mode){
       const button=waiting.querySelector(".chat-image-create");
