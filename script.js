@@ -305,12 +305,12 @@ function renderWorkspace(info){
     }
     function showEditConfirmation(){
       const card=document.createElement("div");card.className="reply-bubble chat-edit-confirmation";
-      const heading=document.createElement("strong");heading.textContent="Review your edit";
+      const heading=document.createElement("strong");heading.textContent="Confirm your photo edit";
       const preview=document.createElement("img");preview.src=editSession.currentImage;preview.alt="Photo to edit";preview.className="chat-generated-image";
-      const summary=document.createElement("p");summary.textContent="I’ll apply this change: "+editSession.prompt+". I’ll choose the visual style automatically and preserve the main subject and important details. Output shape: "+editSession.ratio+" (matched to your original photo).";
+      const summary=document.createElement("p");summary.textContent="I haven’t changed the photo yet. I’m planning to: "+editSession.prompt+". I’ll choose the visual style automatically and preserve the main subject and important details. The result will use "+editSession.ratio+" proportions. Is this what you’d like me to do?";
       const actions=document.createElement("div");actions.className="chat-actions";
-      const confirm=document.createElement("button");confirm.type="button";confirm.className="chat-action chat-image-create";confirm.textContent="Confirm and edit";
-      const change=document.createElement("button");change.type="button";change.className="chat-action";change.textContent="Change details";
+      const confirm=document.createElement("button");confirm.type="button";confirm.className="chat-action chat-image-create";confirm.textContent="Yes, edit my photo";
+      const change=document.createElement("button");change.type="button";change.className="chat-action";change.textContent="No, change details";
       confirm.addEventListener("click",()=>{confirm.disabled=true;change.disabled=true;confirm.textContent="Editing...";generateFromChat(editSession.prompt,"You decide",editSession.ratio,editSession.currentImage,card,"edit");});
       change.addEventListener("click",()=>{pendingEdit="details";chatInput.placeholder="Describe what you want changed...";chatInput.focus();});
       actions.append(confirm,change);card.append(heading,preview,summary,actions);chatBox.appendChild(card);chatBox.scrollTop=chatBox.scrollHeight;
