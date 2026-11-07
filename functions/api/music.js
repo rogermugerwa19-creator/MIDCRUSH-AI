@@ -71,9 +71,6 @@ export async function onRequestPost({ request, env }) {
     }
 
     const payload = {
-      prompt: type === "instrumental"
-        ? prompt + ", instrumental music only, no vocals, no singing"
-        : prompt,
       lyrics: type === "instrumental" ? "" : lyrics,
       thinking: type === "song",
       audio_format: "mp3",
@@ -83,11 +80,14 @@ export async function onRequestPost({ request, env }) {
       task_type: "text2music"
     };
 
-    if (bpm !== undefined) payload.bpm = bpm;
     if (type === "song" && !lyrics) {
-      payload.sample_mode = true;
       payload.sample_query = prompt;
+    } else {
+      payload.prompt = type === "instrumental"
+        ? prompt + ", instrumental music only, no vocals, no singing"
+        : prompt;
     }
+    if (bpm !== undefined) payload.bpm = bpm;
 
     try {
       const result = await callAceStep(env, "/release_task", payload);
@@ -128,8 +128,9 @@ export async function onRequestPost({ request, env }) {
 
       return json({
         taskId,
-        status: item.status,
+        status: Number(item.status),
         result: details.map(track => ({
+          status: Number(track.status),
           file: typeof track.file === "string" ? track.file : "",
           lyrics: typeof track.lyrics === "string" ? track.lyrics : "",
           prompt: typeof track.prompt === "string" ? track.prompt : "",
@@ -142,4 +143,48 @@ export async function onRequestPost({ request, env }) {
   }
 
   return json({ error: "Unknown music action." }, 400);
+}
+
+
+export async function onRequestGet({ request, env }) {
+  const requestUrl = new URL(request.url);
+  if (requestUrl.pathname !== "/api/music/audio") {
+    return json({ error: "Audio endpoint not found." }, 404);
+  }
+
+  const file = requestUrl.searchParams.get("file") || "";
+  if (!file.startsWith("/v1/audio?")) {
+    return json({ error: "Invalid audio file reference." }, 400);
+  }
+
+  const base = getApiBase(env);
+  if (!base) return json({ error: "Music generation is not configured yet." }, 503);
+
+  let audioUrl;
+  try {
+    audioUrl = new URL(file, base);
+    if (audioUrl.origin !== new URL(base).origin || audioUrl.pathname !== "/v1/audio" || !audioUrl.searchParams.has("path")) {
+      return json({ error: "Invalid audio file reference." }, 400);
+    }
+  } catch {
+    return json({ error: "Invalid audio file reference." }, 400);
+  }
+
+  const headers = {};
+  if (env.ACESTEP_API_KEY) headers.Authorization = `Bearer ${env.ACESTEP_API_KEY}`;
+
+  try {
+    const upstream = await fetch(audioUrl.toString(), { headers });
+    if (!upstream.ok) return json({ error: "The generated audio is not available yet." }, upstream.status === 404 ? 404 : 502);
+    return new Response(upstream.body, {
+      status: 200,
+      headers: {
+        "Content-Type": upstream.headers.get("Content-Type") || "audio/mpeg",
+        "Content-Disposition": "inline; filename=\"midcrush-music.mp3\"",
+        "Cache-Control": "private, no-store"
+      }
+    });
+  } catch {
+    return json({ error: "Could not retrieve the generated audio." }, 502);
+  }
 }
