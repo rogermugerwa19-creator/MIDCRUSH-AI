@@ -52,6 +52,7 @@ function renderWorkspace(info){
     let pendingEditCard=null;
     let pendingGeneration=null;
     let editSession=null;
+    let currentImageData="";
     function readConversations(){
       try{
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
@@ -87,7 +88,7 @@ function renderWorkspace(info){
         remove.textContent="×";
         remove.addEventListener("click",()=>{
           conversations=conversations.filter(c=>c.id!==conversation.id);
-          if(currentChatId===conversation.id){currentChatId=null;history=[];latestReply="";renderHistory();copyReplyButton.disabled=true;}
+          if(currentChatId===conversation.id){currentChatId=null;history=[];latestReply="";currentImageData="";attachedImageData="";editSession=null;renderHistory();copyReplyButton.disabled=true;}
           saveConversations();
         });
         item.append(open,remove);
@@ -117,6 +118,9 @@ function renderWorkspace(info){
       const conversation=conversations.find(c=>c.id===id);
       if(!conversation)return;
       currentChatId=id;
+      currentImageData=typeof conversation.imageData==="string"?conversation.imageData:"";
+      attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
+      editSession=null;pendingEdit=null;pendingEditCard=null;
       history=conversation.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string");
       renderHistory();
       renderRecentChats();
@@ -127,6 +131,7 @@ function renderWorkspace(info){
       const conversation=conversations.find(c=>c.id===currentChatId);
       if(!conversation)return;
       conversation.messages=history.slice(-80);
+      conversation.imageData=currentImageData||"";
       const firstUser=history.find(m=>m.role==="user");
       conversation.title=firstUser?firstUser.content.slice(0,55)+(firstUser.content.length>55?"…":""):"New conversation";
       conversation.updatedAt=Date.now();
@@ -137,6 +142,7 @@ function renderWorkspace(info){
       currentChatId=null;
       history=[];
       latestReply="";
+      currentImageData="";attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
       pendingEdit=null;pendingEditCard=null;pendingGeneration=null;editSession=null;
       renderHistory();
       renderRecentChats();
@@ -205,7 +211,7 @@ function renderWorkspace(info){
       if(!["image/jpeg","image/png","image/webp"].includes(file.type)){showToast("Choose a JPG, PNG or WebP photo.");chatImageFile.value="";return;}
       if(file.size>4*1024*1024){showToast("Choose a photo smaller than 4 MB.");chatImageFile.value="";return;}
       const reader=new FileReader();
-      reader.onload=()=>{const source=new Image();source.onload=()=>{const scale=Math.min(1,511/Math.max(source.width,source.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));canvas.getContext("2d").drawImage(source,0,0,canvas.width,canvas.height);attachedImageData=canvas.toDataURL("image/jpeg",0.88);chatImagePreview.hidden=false;chatImagePreview.replaceChildren();const img=document.createElement("img");img.src=attachedImageData;img.alt="Photo ready to edit";const remove=document.createElement("button");remove.type="button";remove.textContent="Remove photo";remove.addEventListener("click",()=>{attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();});chatImagePreview.append(img,remove);};source.onerror=()=>showToast("Could not read that image. Try another photo.");source.src=String(reader.result||"");};
+      reader.onload=()=>{const source=new Image();source.onload=()=>{const scale=Math.min(1,511/Math.max(source.width,source.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));canvas.getContext("2d").drawImage(source,0,0,canvas.width,canvas.height);attachedImageData=canvas.toDataURL("image/jpeg",0.88);currentImageData=attachedImageData;persistCurrentConversation();chatImagePreview.hidden=false;chatImagePreview.replaceChildren();const img=document.createElement("img");img.src=attachedImageData;img.alt="Photo ready to edit";const remove=document.createElement("button");remove.type="button";remove.textContent="Remove photo";remove.addEventListener("click",()=>{attachedImageData="";currentImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();persistCurrentConversation();});chatImagePreview.append(img,remove);};source.onerror=()=>showToast("Could not read that image. Try another photo.");source.src=String(reader.result||"");};
       reader.readAsDataURL(file);
     });
     chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";});
@@ -320,6 +326,7 @@ function renderWorkspace(info){
         waiting.replaceChildren();
         if(mode==="edit"){
           editSession.currentImage=data.image;
+          currentImageData=data.image;
           const title=document.createElement("strong");title.textContent="Your edited photo";
           const comparison=document.createElement("div");comparison.className="chat-edit-comparison";
           const left=document.createElement("div");const ll=document.createElement("small");ll.textContent="Original";
@@ -334,6 +341,7 @@ function renderWorkspace(info){
           actions.append(revise,save);waiting.appendChild(actions);
           history.push({role:"assistant",content:"Suggested photo edit: "+prompt});
         }else{
+          currentImageData=data.image;
           waiting.append(document.createTextNode("Your image is ready."));
           const img=document.createElement("img");img.src=data.image;img.alt="AI generated image";img.className="chat-generated-image";waiting.appendChild(img);
           const download=document.createElement("a");download.href=data.image;download.download="midcrush-ai-image.jpg";download.textContent="Save image";download.className="chat-image-download";waiting.appendChild(download);
@@ -461,17 +469,17 @@ function renderWorkspace(info){
         }
         return;
       }
-      if(mode==="edit"&&!attachedImageData){showToast("Add a photo first.");return;}
+      if(mode==="edit"&&!attachedImageData&&!currentImageData){showToast("Add a photo first.");return;}
       if(mode==="generate"||(mode==="chat"&&!attachedImageData&&isImageRequest(value))){
         ensureConversation();
         history.push({role:"user",content:"[Image request] "+value});persistCurrentConversation();
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";showImageChoices(value,"generate","");return;
       }
-      if(mode==="edit"||(mode==="chat"&&attachedImageData&&!isImageQuestion(value))){
+      if(mode==="edit"||(mode==="chat"&&(attachedImageData||currentImageData&&isPhotoEditRequest(value))&&!isImageQuestion(value))){
         ensureConversation();history.push({role:"user",content:"[Photo edit] "+value});persistCurrentConversation();
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
-        const imageToEdit=attachedImageData;
+        const imageToEdit=attachedImageData||currentImageData;
         chatInput.value="";
         if(imageToEdit){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
         if(!hasSpecificPhotoEditDetails(value)){
@@ -484,7 +492,7 @@ function renderWorkspace(info){
         }
         showImageChoices(value,"edit",imageToEdit||editSession?.currentImage||"");return;
       }
-      const imageToAsk=attachedImageData;
+      const imageToAsk=attachedImageData||(currentImageData&&isImageQuestion(value)?currentImageData:"");
       chatInput.value="";
       if(imageToAsk){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
       requestReply(value,false,imageToAsk);
