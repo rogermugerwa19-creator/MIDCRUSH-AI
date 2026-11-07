@@ -25,7 +25,7 @@ function getOpenAIAnswer(data) {
     extractText(data?.generated_text);
 }
 
-async function callOpenAICompatible({ name, url, key, model, messages, headers = {}, image }) {
+async function callOpenAICompatible({ name, url, key, model, messages, headers = {}, image, systemPrompt = SYSTEM_PROMPT }) {
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -35,7 +35,7 @@ async function callOpenAICompatible({ name, url, key, model, messages, headers =
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages.map((item, index) => image && index === messages.length - 1 && item.role === "user" ? { role: "user", content: [{ type: "text", text: item.content }, { type: "image_url", image_url: { url: image } }] } : item)],
+      messages: [{ role: "system", content: systemPrompt }, ...messages.map((item, index) => image && index === messages.length - 1 && item.role === "user" ? { role: "user", content: [{ type: "text", text: item.content }, { type: "image_url", image_url: { url: image } }] } : item)],
       max_tokens: 1400,
       temperature: 0.35
     })
@@ -49,7 +49,7 @@ async function callOpenAICompatible({ name, url, key, model, messages, headers =
   return { response: answer, provider: name, truncated: data?.choices?.[0]?.finish_reason === "length" };
 }
 
-async function callGemini(key, messages, image) {
+async function callGemini(key, messages, image, systemPrompt = SYSTEM_PROMPT) {
   const contents = messages.map(item => ({
     role: item.role === "assistant" ? "model" : "user",
     parts: [{ text: item.content }, ...(image && item === messages[messages.length - 1] && item.role === "user" ? [{ inlineData: { mimeType: image.slice(5, image.indexOf(";")), data: image.slice(image.indexOf(",") + 1) } }] : [])]
@@ -58,7 +58,7 @@ async function callGemini(key, messages, image) {
     method: "POST",
     headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      systemInstruction: { parts: [{ text: systemPrompt }] },
       contents,
       generationConfig: { maxOutputTokens: 1400, temperature: 0.35 }
     })
@@ -74,9 +74,9 @@ async function callGemini(key, messages, image) {
   };
 }
 
-async function callCloudflare(ai, messages) {
+async function callCloudflare(ai, messages, systemPrompt = SYSTEM_PROMPT) {
   const result = await ai.run("@cf/zai-org/glm-4.7-flash", {
-    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
     max_completion_tokens: 1400,
     temperature: 0.35
   });
@@ -90,9 +90,9 @@ async function callCloudflare(ai, messages) {
   };
 }
 
-async function callCloudflareVision(ai, messages, image) {
+async function callCloudflareVision(ai, messages, image, systemPrompt = SYSTEM_PROMPT) {
   const multimodalMessages = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     ...messages.map((item, index) =>
       index === messages.length - 1 && item.role === "user"
         ? {
@@ -132,6 +132,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   const image = typeof body.image === "string" ? body.image : "";
+  const systemPrompt = image
+    ? SYSTEM_PROMPT + " IMPORTANT: A photo IS attached to the current user message. Do not ask the user to upload a photo or select Edit Photo because the photo is already attached. If the user asks a question about the photo, answer using it. Never claim an edit has happened unless the website image editor has actually returned an edited image."
+    : SYSTEM_PROMPT;
   if (image && (!/^data:image\/(jpeg|png|webp);base64,/i.test(image) || image.length > 5_800_000)) return json({ error: "The photo must be a JPG, PNG or WebP image smaller than 4 MB." }, 400);
   const messages = [];
   let totalCharacters = 0;
@@ -160,11 +163,12 @@ export async function onRequestPost({ request, env }) {
       key: env.GROQ_API_KEY,
       model: image ? "meta-llama/llama-4-scout-17b-16e-instruct" : "openai/gpt-oss-20b",
       messages,
-      image
+      image,
+      systemPrompt
     }));
   }
   if (env.GEMINI_API_KEY) {
-    providers.push(() => callGemini(env.GEMINI_API_KEY, messages, image));
+    providers.push(() => callGemini(env.GEMINI_API_KEY, messages, image, systemPrompt));
   }
   if (env.OPENROUTER_API_KEY) {
     providers.push(() => callOpenAICompatible({
@@ -174,13 +178,14 @@ export async function onRequestPost({ request, env }) {
       model: "openrouter/free",
       messages,
       image,
+      systemPrompt,
       headers: { "HTTP-Referer": "https://midcrush-ai.pages.dev", "X-Title": "MIDCRUSH AI" }
     }));
   }
   if (env.AI && image) {
-    providers.push(() => callCloudflareVision(env.AI, messages, image));
+    providers.push(() => callCloudflareVision(env.AI, messages, image, systemPrompt));
   } else if (env.AI) {
-    providers.push(() => callCloudflare(env.AI, messages));
+    providers.push(() => callCloudflare(env.AI, messages, systemPrompt));
   }
 
   if (providers.length === 0) {
