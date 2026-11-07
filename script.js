@@ -206,7 +206,7 @@ function renderWorkspace(info){
       renderRecentChats();
     }
   }else if(info.kind==="image"){
-    target.innerHTML='<div class="workspace-card image-workspace"><div class="workspace-label">Create an image from your imagination</div><p class="image-intro">Describe what you want to see. Choose a style, then generate your image.</p><form id="imageForm" class="image-form"><label for="imagePrompt">Image description</label><textarea id="imagePrompt" maxlength="1800" rows="4" placeholder="Example: A small African village at sunset, warm golden light, green hills, detailed scenery..." required></textarea><div class="image-form-bottom"><div class="image-style-field"><label for="imageStyle">Art style</label><select id="imageStyle"><option value="photorealistic, realistic photography">Photorealistic</option><option value="high-quality 3D animated render">3D animation</option><option value="anime illustration">Anime</option><option value="detailed digital artwork">Digital art</option><option value="cinematic concept art">Cinematic</option><option value="soft watercolor painting">Watercolor</option></select></div><button type="submit" class="image-generate-button" id="imageGenerateButton"><i data-lucide="sparkles"></i> Generate image</button></div></form><div class="image-status" id="imageStatus" role="status" aria-live="polite">Your generated image will appear here.</div><div class="image-result" id="imageResult" hidden><img id="generatedImage" alt="AI-generated image"><div class="image-result-actions"><a id="downloadImageButton" class="image-download-button" download="midcrush-ai-image.jpg"><i data-lucide="download"></i> Save image</a><span class="image-model-label">Generated with FLUX.1 schnell</span></div></div><div class="image-note">Free usage is limited by Cloudflare&#39;s daily AI allowance. Image generation may stop when the shared daily allowance is used up.</div></div>';
+    target.innerHTML='<div class="workspace-card image-workspace"><div class="workspace-label">Create an image from your imagination</div><p class="image-intro">Describe what you want to see. Choose a style, then generate your image.</p><form id="imageForm" class="image-form"><label for="imagePrompt">Image description</label><textarea id="imagePrompt" maxlength="1800" rows="4" placeholder="Example: A small African village at sunset, warm golden light, green hills, detailed scenery..." required></textarea><div class="image-form-bottom"><div class="image-style-field"><label for="imageStyle">Art style</label><select id="imageStyle"><option value="photorealistic, realistic photography">Photorealistic</option><option value="high-quality 3D animated render">3D animation</option><option value="anime illustration">Anime</option><option value="detailed digital artwork">Digital art</option><option value="cinematic concept art">Cinematic</option><option value="soft watercolor painting">Watercolor</option><option value="high-detail fantasy concept art">Fantasy</option><option value="retro futuristic synthwave artwork">Synthwave</option><option value="minimalist vector illustration">Minimalist</option><option value="comic book illustration with bold ink lines">Comic book</option><option value="traditional oil painting with rich brushstrokes">Oil painting</option><option value="pixel art with crisp pixel detail">Pixel art</option><option value="architectural visualization, realistic materials">Architectural render</option><option value="surreal dreamlike fine art">Surreal</option></select></div><button type="submit" class="image-generate-button" id="imageGenerateButton"><i data-lucide="sparkles"></i> Generate image</button></div></form><div class="image-status" id="imageStatus" role="status" aria-live="polite">Your generated image will appear here.</div><div class="image-result" id="imageResult" hidden><img id="generatedImage" alt="AI-generated image"><div class="image-result-actions"><a id="downloadImageButton" class="image-download-button" download="midcrush-ai-image.jpg"><i data-lucide="download"></i> Save image</a><button type="button" id="regenerateImageButton" class="image-regenerate-button"><i data-lucide="refresh-cw"></i> Generate again</button><span class="image-model-label">Generated with FLUX.1 schnell</span></div></div><div class="image-note">Free usage is limited by Cloudflare&#39;s daily AI allowance. Image generation may stop when the shared daily allowance is used up.</div></div>';
     const imageForm=document.getElementById("imageForm");
     const imagePrompt=document.getElementById("imagePrompt");
     const imageStyle=document.getElementById("imageStyle");
@@ -215,8 +215,8 @@ function renderWorkspace(info){
     const imageResult=document.getElementById("imageResult");
     const generatedImage=document.getElementById("generatedImage");
     const downloadImageButton=document.getElementById("downloadImageButton");
-    imageForm.addEventListener("submit",async event=>{
-      event.preventDefault();
+    const regenerateImageButton=document.getElementById("regenerateImageButton");
+    async function generateImage(){
       const prompt=imagePrompt.value.trim();
       if(!prompt)return;
       imageButton.disabled=true;
@@ -244,7 +244,9 @@ function renderWorkspace(info){
         imageButton.innerHTML='<i data-lucide="sparkles"></i> Generate image';
         if(window.lucide)lucide.createIcons();
       }
-    });
+    }
+    imageForm.addEventListener("submit",event=>{event.preventDefault();generateImage();});
+    regenerateImageButton.addEventListener("click",generateImage);
   }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
