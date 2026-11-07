@@ -58,6 +58,10 @@ export async function onRequestPost({ request, env }) {
     if (!answer) return json({ error: "The AI model returned an empty response. Please try again." }, 502);
     return json({ response: answer });
   } catch (error) {
-    return json({ error: "The AI service is temporarily unavailable or its daily free allowance may have been reached. Please try again later." }, 502);
+    // Temporary troubleshooting: return a bounded error message, never credentials.
+    const detail = error && typeof error.message === "string"
+      ? error.message.slice(0, 300)
+      : "Unknown Workers AI error";
+    return json({ error: "Workers AI request failed.", detail }, 502);
   }
 }
