@@ -42,22 +42,20 @@ function renderWorkspace(info){
     const copyReplyButton=document.getElementById("copyReplyButton");
     document.getElementById("newChatButton").addEventListener("click",()=>{history=[];latestReply="";chatBox.innerHTML='<div class="welcome-message">👋 New conversation. What would you like help with?</div>';copyReplyButton.disabled=true;chatInput.focus();});
     copyReplyButton.addEventListener("click",async()=>{if(!latestReply)return;try{await navigator.clipboard.writeText(latestReply);showToast("Reply copied.");}catch{showToast("Could not copy this reply.");}});
-    chatForm.addEventListener("submit",async e=>{
-      e.preventDefault();
-      const value=chatInput.value.trim();
+    async function requestReply(value, continuation=false){
       if(!value||sendButton.disabled)return;
       history.push({role:"user",content:value});
       const bubble=document.createElement("div");
       bubble.className="message-bubble";
       bubble.textContent=value;
       chatBox.appendChild(bubble);
-      chatInput.value="";
       const waiting=document.createElement("div");
       waiting.className="reply-bubble";
       waiting.textContent="MIDCRUSH AI is thinking...";
       chatBox.appendChild(waiting);
       chatBox.scrollTop=chatBox.scrollHeight;
       sendButton.disabled=true;
+      chatInput.disabled=true;
       try{
         const response=await fetch("/api/chat",{
           method:"POST",
@@ -68,17 +66,34 @@ function renderWorkspace(info){
         if(!response.ok){throw new Error(data.error||"The AI service could not answer right now.");}
         const answer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
         waiting.textContent=answer;
-        latestReply=answer;
+        latestReply=continuation&&latestReply?latestReply+"\n\n"+answer:answer;
         copyReplyButton.disabled=false;
         history.push({role:"assistant",content:answer});
+        if(data.truncated){
+          const continueButton=document.createElement("button");
+          continueButton.type="button";
+          continueButton.className="chat-action chat-continue";
+          continueButton.textContent="Continue answer";
+          continueButton.addEventListener("click",()=>{continueButton.remove();requestReply("Continue exactly where you stopped. Do not repeat the previous text; finish the remaining answer.",true);});
+          waiting.appendChild(document.createElement("br"));
+          waiting.appendChild(continueButton);
+        }
       }catch(error){
         waiting.textContent=error.message||"Connection error. Please try again.";
         history.pop();
       }finally{
         sendButton.disabled=false;
+        chatInput.disabled=false;
         chatBox.scrollTop=chatBox.scrollHeight;
         chatInput.focus();
       }
+    }
+    chatForm.addEventListener("submit",e=>{
+      e.preventDefault();
+      const value=chatInput.value.trim();
+      if(!value||sendButton.disabled)return;
+      chatInput.value="";
+      requestReply(value);
     });
   }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
