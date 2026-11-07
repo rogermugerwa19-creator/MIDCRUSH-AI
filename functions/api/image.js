@@ -16,6 +16,16 @@ const dimensions = {
   "2:3": [832, 1248]
 };
 
+function decodeImage(dataUrl) {
+  const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl || "");
+  if (!match) return null;
+  const binary = atob(match[2]);
+  if (binary.length > 4 * 1024 * 1024) throw new Error("The uploaded image must be 4 MB or smaller.");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: match[1] });
+}
+
 export async function onRequestPost({ request, env }) {
   if (!env.AI) {
     return json({ error: "Image generation is not connected to Cloudflare Workers AI. Check the AI binding in your Cloudflare Pages settings." }, 503);
@@ -25,11 +35,11 @@ export async function onRequestPost({ request, env }) {
   try {
     body = await request.json();
   } catch {
-    return json({ error: "Please enter a valid image prompt." }, 400);
+    return json({ error: "Please send a valid image request." }, 400);
   }
 
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
-  if (!prompt) return json({ error: "Describe the image you want to create." }, 400);
+  if (!prompt) return json({ error: "Describe the image or edit you want." }, 400);
   if (prompt.length > 1800) return json({ error: "Please keep your prompt under 1,800 characters." }, 400);
 
   const aspectRatio = typeof body.aspectRatio === "string" && dimensions[body.aspectRatio]
@@ -42,6 +52,18 @@ export async function onRequestPost({ request, env }) {
     form.append("prompt", prompt);
     form.append("width", String(width));
     form.append("height", String(height));
+
+    if (body.image) {
+      let image;
+      try {
+        image = decodeImage(body.image);
+      } catch (error) {
+        return json({ error: error.message }, 400);
+      }
+      if (!image) return json({ error: "Upload a JPG, PNG or WebP image." }, 400);
+      form.append("input_image_0", image, "reference-image");
+    }
+
     const formResponse = new Response(form);
     const result = await env.AI.run("@cf/black-forest-labs/flux-2-klein-4b", {
       multipart: {
@@ -67,6 +89,6 @@ export async function onRequestPost({ request, env }) {
     if (/3040|out of capacity|capacity/i.test(message)) {
       return json({ error: "The image service is busy right now. Please wait a little and try again." }, 503);
     }
-    return json({ error: "Image generation failed. Please try again in a moment." }, 502);
+    return json({ error: "Image generation or editing failed. Please try again in a moment." }, 502);
   }
 }
