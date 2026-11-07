@@ -103,7 +103,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const image = typeof body.image === "string" ? body.image : "";
-  if (image && (!/^data:image\\/(jpeg|png|webp);base64,/i.test(image) || image.length > 5_800_000)) return json({ error: "The photo must be a JPG, PNG or WebP image smaller than 4 MB." }, 400);
+  if (image && (!/^data:image\/(jpeg|png|webp);base64,/i.test(image) || image.length > 5_800_000)) return json({ error: "The photo must be a JPG, PNG or WebP image smaller than 4 MB." }, 400);
   const messages = [];
   let totalCharacters = 0;
   for (const item of body.messages) {
