@@ -205,7 +205,47 @@ function renderWorkspace(info){
       renderHistory();
       renderRecentChats();
     }
-  }else{
+  }else if(info.kind==="image"){
+    target.innerHTML='<div class="workspace-card image-workspace"><div class="workspace-label">Create an image from your imagination</div><p class="image-intro">Describe what you want to see. Choose a style, then generate your image.</p><form id="imageForm" class="image-form"><label for="imagePrompt">Image description</label><textarea id="imagePrompt" maxlength="1800" rows="4" placeholder="Example: A small African village at sunset, warm golden light, green hills, detailed scenery..." required></textarea><div class="image-form-bottom"><div class="image-style-field"><label for="imageStyle">Art style</label><select id="imageStyle"><option value="photorealistic, realistic photography">Photorealistic</option><option value="high-quality 3D animated render">3D animation</option><option value="anime illustration">Anime</option><option value="detailed digital artwork">Digital art</option><option value="cinematic concept art">Cinematic</option><option value="soft watercolor painting">Watercolor</option></select></div><button type="submit" class="image-generate-button" id="imageGenerateButton"><i data-lucide="sparkles"></i> Generate image</button></div></form><div class="image-status" id="imageStatus" role="status" aria-live="polite">Your generated image will appear here.</div><div class="image-result" id="imageResult" hidden><img id="generatedImage" alt="AI-generated image"><div class="image-result-actions"><a id="downloadImageButton" class="image-download-button" download="midcrush-ai-image.jpg"><i data-lucide="download"></i> Save image</a><span class="image-model-label">Generated with FLUX.1 schnell</span></div></div><div class="image-note">Free usage is limited by Cloudflare's daily AI allowance. Image generation may stop when the shared daily allowance is used up.</div></div>';
+    const imageForm=document.getElementById("imageForm");
+    const imagePrompt=document.getElementById("imagePrompt");
+    const imageStyle=document.getElementById("imageStyle");
+    const imageButton=document.getElementById("imageGenerateButton");
+    const imageStatus=document.getElementById("imageStatus");
+    const imageResult=document.getElementById("imageResult");
+    const generatedImage=document.getElementById("generatedImage");
+    const downloadImageButton=document.getElementById("downloadImageButton");
+    imageForm.addEventListener("submit",async event=>{
+      event.preventDefault();
+      const prompt=imagePrompt.value.trim();
+      if(!prompt)return;
+      imageButton.disabled=true;
+      imageButton.innerHTML='<i data-lucide="loader-circle"></i> Generating...';
+      if(window.lucide)lucide.createIcons();
+      imageStatus.textContent="Creating your image. This may take a little while...";
+      imageResult.hidden=true;
+      try{
+        const response=await fetch("/api/image",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({prompt:prompt+", "+imageStyle.value})
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"Image generation failed. Please try again.");
+        if(typeof data.image!=="string"||!data.image.startsWith("data:image/"))throw new Error("The image service returned an invalid image.");
+        generatedImage.src=data.image;
+        downloadImageButton.href=data.image;
+        imageResult.hidden=false;
+        imageStatus.textContent="Your image is ready.";
+      }catch(error){
+        imageStatus.textContent=error.message||"Could not generate the image. Please try again.";
+      }finally{
+        imageButton.disabled=false;
+        imageButton.innerHTML='<i data-lucide="sparkles"></i> Generate image';
+        if(window.lucide)lucide.createIcons();
+      }
+    });
+lse{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
 }
