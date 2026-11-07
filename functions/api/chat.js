@@ -25,7 +25,7 @@ function getOpenAIAnswer(data) {
     extractText(data?.generated_text);
 }
 
-async function callOpenAICompatible({ name, url, key, model, messages, headers = {} }) {
+async function callOpenAICompatible({ name, url, key, model, messages, headers = {}, image }) {
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -35,7 +35,7 @@ async function callOpenAICompatible({ name, url, key, model, messages, headers =
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages.map((item, index) => image && index === messages.length - 1 && item.role === "user" ? { role: "user", content: [{ type: "text", text: item.content }, { type: "image_url", image_url: { url: image } }] } : item)],
       max_tokens: 1400,
       temperature: 0.35
     })
@@ -49,10 +49,10 @@ async function callOpenAICompatible({ name, url, key, model, messages, headers =
   return { response: answer, provider: name, truncated: data?.choices?.[0]?.finish_reason === "length" };
 }
 
-async function callGemini(key, messages) {
+async function callGemini(key, messages, image) {
   const contents = messages.map(item => ({
     role: item.role === "assistant" ? "model" : "user",
-    parts: [{ text: item.content }]
+    parts: [{ text: item.content }, ...(image && item === messages[messages.length - 1] && item.role === "user" ? [{ inlineData: { mimeType: image.slice(5, image.indexOf(";")), data: image.slice(image.indexOf(",") + 1) } }] : [])]
   }));
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent", {
     method: "POST",
@@ -102,6 +102,8 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Please send between 1 and 12 recent messages." }, 400);
   }
 
+  const image = typeof body.image === "string" ? body.image : "";
+  if (image && (!/^data:image\\/(jpeg|png|webp);base64,/i.test(image) || image.length > 5_800_000)) return json({ error: "The photo must be a JPG, PNG or WebP image smaller than 4 MB." }, 400);
   const messages = [];
   let totalCharacters = 0;
   for (const item of body.messages) {
@@ -127,12 +129,13 @@ export async function onRequestPost({ request, env }) {
       name: "Groq",
       url: "https://api.groq.com/openai/v1/chat/completions",
       key: env.GROQ_API_KEY,
-      model: "openai/gpt-oss-20b",
-      messages
+      model: image ? "meta-llama/llama-4-scout-17b-16e-instruct" : "openai/gpt-oss-20b",
+      messages,
+      image
     }));
   }
   if (env.GEMINI_API_KEY) {
-    providers.push(() => callGemini(env.GEMINI_API_KEY, messages));
+    providers.push(() => callGemini(env.GEMINI_API_KEY, messages, image));
   }
   if (env.OPENROUTER_API_KEY) {
     providers.push(() => callOpenAICompatible({
@@ -141,10 +144,11 @@ export async function onRequestPost({ request, env }) {
       key: env.OPENROUTER_API_KEY,
       model: "openrouter/free",
       messages,
+      image,
       headers: { "HTTP-Referer": "https://midcrush-ai.pages.dev", "X-Title": "MIDCRUSH AI" }
     }));
   }
-  if (env.AI) {
+  if (env.AI && !image) {
     providers.push(() => callCloudflare(env.AI, messages));
   }
 
