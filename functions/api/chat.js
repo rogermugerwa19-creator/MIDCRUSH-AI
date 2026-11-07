@@ -50,19 +50,27 @@ export async function onRequestPost({ request, env }) {
         },
         ...messages
       ],
-      max_tokens: 700,
-      temperature: 0.65
+      max_completion_tokens: 700,
+      temperature: 0.65,
+      chat_template_kwargs: { enable_thinking: false }
     });
 
-    // GLM-4.7-Flash returns an OpenAI-compatible choices array.
-    const messageContent = result?.choices?.[0]?.message?.content;
-    const answer = typeof result?.response === "string"
-      ? result.response.trim()
-      : typeof messageContent === "string"
-        ? messageContent.trim()
-        : Array.isArray(messageContent)
-          ? messageContent.map(part => typeof part === "string" ? part : (part?.text || "")).join("").trim()
-          : "";
+    // Accept the documented chat-completion shape and the alternate text shape.
+    const message = result?.choices?.[0]?.message;
+    const candidates = [
+      result?.response,
+      message?.content,
+      result?.output_text,
+      result?.generated_text
+    ];
+    const answer = candidates.map(value => {
+      if (typeof value === "string") return value.trim();
+      if (Array.isArray(value)) {
+        return value.map(part => typeof part === "string" ? part : (typeof part?.text === "string" ? part.text : "")).join("").trim();
+      }
+      if (value && typeof value === "object" && typeof value.text === "string") return value.text.trim();
+      return "";
+    }).find(Boolean) || "";
 
     if (!answer) {
       return json({ error: "The AI service returned an unexpected response. Please try again." }, 502);
