@@ -245,7 +245,7 @@ function renderWorkspace(info){
         if(window.lucide)lucide.createIcons();
       }
     });
-lse{
+  }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
 }
