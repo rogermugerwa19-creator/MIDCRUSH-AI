@@ -61,12 +61,13 @@ export async function onRequestPost({ request, env }) {
     const duration = Number.isFinite(Number(body.duration))
       ? Math.min(180, Math.max(10, Number(body.duration)))
       : 60;
-    const bpm = body.bpm === "" || body.bpm == null
-      ? undefined
-      : Math.min(300, Math.max(30, Math.round(Number(body.bpm))));
-
-    if (bpm !== undefined && !Number.isFinite(bpm)) {
-      return json({ error: "Tempo must be a number between 30 and 300 BPM." }, 400);
+    let bpm;
+    if (body.bpm !== "" && body.bpm != null) {
+      const requestedBpm = Number(body.bpm);
+      if (!Number.isFinite(requestedBpm) || requestedBpm < 30 || requestedBpm > 300) {
+        return json({ error: "Tempo must be a number between 30 and 300 BPM." }, 400);
+      }
+      bpm = Math.round(requestedBpm);
     }
 
     const payload = {
