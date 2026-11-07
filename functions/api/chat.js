@@ -90,6 +90,35 @@ async function callCloudflare(ai, messages) {
   };
 }
 
+async function callCloudflareVision(ai, messages, image) {
+  const multimodalMessages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...messages.map((item, index) =>
+      index === messages.length - 1 && item.role === "user"
+        ? {
+            role: "user",
+            content: [
+              { type: "text", text: item.content },
+              { type: "image_url", image_url: { url: image } }
+            ]
+          }
+        : item
+    )
+  ];
+  const result = await ai.run("@cf/meta/llama-3.2-11b-vision-instruct", {
+    messages: multimodalMessages,
+    max_tokens: 1400,
+    temperature: 0.35
+  });
+  const answer = getOpenAIAnswer(result) || extractText(result?.response);
+  if (!answer) throw new Error("Cloudflare Vision returned an empty response");
+  return {
+    response: answer,
+    provider: "Cloudflare Vision",
+    truncated: false
+  };
+}
+
 export async function onRequestPost({ request, env }) {
   let body;
   try {
@@ -148,7 +177,9 @@ export async function onRequestPost({ request, env }) {
       headers: { "HTTP-Referer": "https://midcrush-ai.pages.dev", "X-Title": "MIDCRUSH AI" }
     }));
   }
-  if (env.AI && !image) {
+  if (env.AI && image) {
+    providers.push(() => callCloudflareVision(env.AI, messages, image));
+  } else if (env.AI) {
     providers.push(() => callCloudflare(env.AI, messages));
   }
 
