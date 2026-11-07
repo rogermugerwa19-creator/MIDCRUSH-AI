@@ -7,6 +7,15 @@ function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers });
 }
 
+const dimensions = {
+  "1:1": [1024, 1024],
+  "16:9": [1280, 720],
+  "9:16": [720, 1280],
+  "4:3": [1152, 864],
+  "3:2": [1248, 832],
+  "2:3": [832, 1248]
+};
+
 export async function onRequestPost({ request, env }) {
   if (!env.AI) {
     return json({ error: "Image generation is not connected to Cloudflare Workers AI. Check the AI binding in your Cloudflare Pages settings." }, 503);
@@ -23,10 +32,22 @@ export async function onRequestPost({ request, env }) {
   if (!prompt) return json({ error: "Describe the image you want to create." }, 400);
   if (prompt.length > 1800) return json({ error: "Please keep your prompt under 1,800 characters." }, 400);
 
+  const aspectRatio = typeof body.aspectRatio === "string" && dimensions[body.aspectRatio]
+    ? body.aspectRatio
+    : "1:1";
+  const [width, height] = dimensions[aspectRatio];
+
   try {
-    const result = await env.AI.run("@cf/black-forest-labs/flux-1-schnell", {
-      prompt,
-      steps: 4
+    const form = new FormData();
+    form.append("prompt", prompt);
+    form.append("width", String(width));
+    form.append("height", String(height));
+    const formResponse = new Response(form);
+    const result = await env.AI.run("@cf/black-forest-labs/flux-2-klein-4b", {
+      multipart: {
+        body: formResponse.body,
+        contentType: formResponse.headers.get("content-type")
+      }
     });
 
     if (!result || typeof result.image !== "string" || !result.image) {
@@ -35,7 +56,8 @@ export async function onRequestPost({ request, env }) {
 
     return json({
       image: "data:image/jpeg;base64," + result.image,
-      model: "FLUX.1 schnell"
+      model: "FLUX.2 klein 4B",
+      aspectRatio
     });
   } catch (error) {
     const message = String(error?.message || "");
