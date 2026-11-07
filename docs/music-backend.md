@@ -52,24 +52,25 @@ Do not merge/launch this as a public generation service until the backend is sec
 - Installation: https://github.com/ace-step/ACE-Step-1.5/blob/main/docs/en/INSTALL.md
 
 
-## Recommended hosting path: RunPod GPU Pod (manual setup required)
+## No-payment provider candidate: Free.ai API (not yet integrated or verified)
 
-A normal GPU Pod is the most straightforward first deployment for this existing ACE-Step REST API adapter. It provides a persistent API process and avoids assuming that a serverless worker can preserve ACE-Step's in-memory task queue between separate status requests.
+Free.ai publicly advertises a hosted music-generation API at https://api.free.ai/v1/music/generate/ and describes ACE-Step for songs with vocals plus AudioLDM 2 for instrumentals. Its music page advertises a free daily token allowance and says generation can be called through an API. This could let MIDCRUSH AI call a provider-hosted engine without running our own GPU server.
 
-1. Create a RunPod account and review its current billing terms before adding any payment method or launching compute. This is a paid GPU host, not a free permanent service.
-2. Create a GPU Pod with enough VRAM for the chosen ACE-Step configuration. The official ACE-Step installation guide lists 4 GB VRAM as a minimum for DiT-only mode and 6 GB for LLM+DiT, but model choice, quantization, offloading and performance affect what is practical.
-3. Install ACE-Step 1.5 using its official installation guide and start the REST API on port 8001. Bind the service to the pod's network interface as required by the host.
-4. Enable ACE-Step API authentication with a strong unique API key. Expose only the API port needed by MIDCRUSH; do not publish an unauthenticated generation endpoint.
-5. In Cloudflare Pages, add server-side variables: ACESTEP_API_URL set to the secure reachable API base URL, and ACESTEP_API_KEY set to the same API key. Never put these values in browser code.
-6. Test one short custom-lyrics song, one auto-lyrics song, one instrumental, status polling, audio playback and MP3 download.
-7. Stop the GPU Pod when it is not being used. Compute is billed while running; persistent storage or other resources may have separate charges.
+Important caveats before adopting it:
+- The provider's public pages are not fully consistent: the music page estimates about 5,000 tokens per generation and advertises 6,000 anonymous tokens/day or 30,000/day for a free account, while its general API page lists AudioLDM 2 at 2,000 tokens/track and a 30,000-token daily free pool. These figures and eligibility need confirmation with a real API response.
+- The public music-page example shows only a basic prompt/duration request. It does not document the full request and response schema needed for ACE-Step vocals, custom lyrics, automatic lyrics, job status, and returned audio URLs. Do not assume the current ACE-Step /release_task and /query_result adapter is compatible.
+- The service's API documentation says API keys are created through an account. Do not put a key in browser JavaScript, commit it to Git, or share it in chat. If an account or key is needed, have a parent/guardian help review the service and its terms.
+- Daily quotas, request limits, retention, uptime, and permission for public visitors to use one shared key must be checked before a public launch. Free quota is not unlimited capacity.
 
-### Cost reference (not a quote)
+### Next integration gate
+1. Confirm the provider's current free allowance and terms, including whether one site's public visitors may use the API through the site's server.
+2. Obtain and test a key privately through the server-side Cloudflare secret setting only; never send the key to the repository or frontend.
+3. Verify exact payloads and responses for a custom-lyrics song, auto-lyrics song, instrumental, job status, and audio download.
+4. Only then implement a separate provider adapter and add server-side daily quotas, per-IP abuse protection, and a safe global usage cap.
 
-RunPod's published pricing page currently lists examples including an RTX 3090 Pod from about $0.50/hour on Community Cloud and an L4 Pod around $0.59/hour. Availability, region, storage, taxes and rates can change. A GPU left running continuously at $0.50/hour would be about $12 per day or $360 for 30 days, before any additional charges. Check the live pricing page before launching: https://www.runpod.io/pricing
+Until those checks pass, keep the existing ACE-Step adapter as an unconfigured foundation and do not claim that the public generator works. No paid GPU hosting is required for this candidate, and no account, key, or payment has been created or authorized by this project work.
 
-A serverless endpoint may reduce idle compute charges, but it needs a purpose-built ACE-Step worker and durable task/result handling. Do not point the current polling adapter at a generic serverless endpoint without adapting and testing that protocol first.
-
-### Before proceeding with paid hosting
-
-No RunPod account has been created, no GPU has been launched, and no payment has been authorized. The owner must decide whether paid GPU hosting is acceptable and control the billing account. Do not launch paid compute without that explicit approval.
+### Provider references
+- Music generator and API example: https://free.ai/music/
+- API documentation and token limits: https://free.ai/api/
+- Provider quickstart: https://free.ai/docs/
