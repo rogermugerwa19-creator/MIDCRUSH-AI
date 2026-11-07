@@ -54,8 +54,22 @@ export async function onRequestPost({ request, env }) {
       temperature: 0.65
     });
 
-    const answer = result && typeof result.response === "string" ? result.response : "";
-    if (!answer) return json({ error: "The AI model returned an empty response. Please try again." }, 502);
+    // GLM-4.7-Flash returns an OpenAI-compatible choices array.
+    const messageContent = result?.choices?.[0]?.message?.content;
+    const answer = typeof result?.response === "string"
+      ? result.response.trim()
+      : typeof messageContent === "string"
+        ? messageContent.trim()
+        : Array.isArray(messageContent)
+          ? messageContent.map(part => typeof part === "string" ? part : (part?.text || "")).join("").trim()
+          : "";
+
+    if (!answer) {
+      const shape = result && typeof result === "object"
+        ? Object.keys(result).slice(0, 12)
+        : [];
+      return json({ error: "The AI model returned an unexpected response format.", detail: shape }, 502);
+    }
     return json({ response: answer });
   } catch (error) {
     // Temporary troubleshooting: return a bounded error message, never credentials.
