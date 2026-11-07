@@ -220,6 +220,11 @@ function renderWorkspace(info){
       const imageQuestion=/^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare)\b/i.test(text.trim());
       return action || (visualDirection && !imageQuestion);
     }
+    function isImageQuestion(value){
+      const text=String(value||"").trim();
+      return /^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare|summarize|summarise|transcribe|extract)\\b/i.test(text)
+        || /\\b(read the text|what is shown|what's shown|identify this|describe this|what does .* say|translate the text)\\b/i.test(text);
+    }
     function hasSpecificPhotoEditDetails(value){
       const text=String(value||"").toLowerCase();
       const action=/\b(transform|change|replace|remove|erase|recolor|recolour|brighten|darken|enhance|restore|convert|turn|make|add|swap|edit\w*)\b/i.test(text);
@@ -350,7 +355,7 @@ function renderWorkspace(info){
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";showImageChoices(value,"generate","");return;
       }
-      if(mode==="edit"||(mode==="chat"&&attachedImageData&&isPhotoEditRequest(value))){
+      if(mode==="edit"||(mode==="chat"&&attachedImageData&&!isImageQuestion(value))){
         ensureConversation();history.push({role:"user",content:"[Photo edit] "+value});persistCurrentConversation();
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         const imageToEdit=attachedImageData;
