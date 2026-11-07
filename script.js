@@ -561,6 +561,129 @@ function renderWorkspace(info){
     }
     imageForm.addEventListener("submit",event=>{event.preventDefault();generateImage();});
     regenerateImageButton.addEventListener("click",generateImage);
+  }else if(info.kind==="music"){
+    target.innerHTML=`<div class="workspace-card music-workspace">
+      <div class="workspace-label">Create original music with MIDCRUSH AI</div>
+      <p class="music-intro">Describe the sound you want. Create a song with vocals or an instrumental track.</p>
+      <form id="musicForm" class="music-form">
+        <div class="music-type-grid" role="group" aria-label="Music type">
+          <label class="music-type-option"><input type="radio" name="musicType" value="song" checked><span><i data-lucide="mic-2"></i><strong>Song with vocals</strong><small>Use your lyrics or let AI create them.</small></span></label>
+          <label class="music-type-option"><input type="radio" name="musicType" value="instrumental"><span><i data-lucide="audio-waveform"></i><strong>Instrumental</strong><small>Music only, without singing.</small></span></label>
+        </div>
+        <label for="musicPrompt">Describe your music</label>
+        <textarea id="musicPrompt" maxlength="1200" rows="3" placeholder="Example: Energetic Afrobeat with lively percussion, warm bass, bright guitar and an uplifting mood..." required></textarea>
+        <div id="musicLyricsWrap">
+          <label for="musicLyrics">Lyrics <span class="music-optional">Optional — leave empty for AI-written lyrics</span></label>
+          <textarea id="musicLyrics" maxlength="6000" rows="5" placeholder="Write your own lyrics here, or leave this empty and AI will create them..."></textarea>
+        </div>
+        <div class="music-settings-grid">
+          <div><label for="musicGenre">Genre</label><select id="musicGenre"><option value="Afrobeat">Afrobeat</option><option value="Afropop">Afropop</option><option value="Amapiano">Amapiano</option><option value="Pop">Pop</option><option value="Hip-hop">Hip-hop</option><option value="R&B">R&amp;B</option><option value="Gospel">Gospel</option><option value="Dancehall">Dancehall</option><option value="Electronic">Electronic</option><option value="Rock">Rock</option><option value="Jazz">Jazz</option><option value="Acoustic">Acoustic</option><option value="Classical">Classical</option></select></div>
+          <div><label for="musicMood">Mood</label><select id="musicMood"><option value="uplifting">Uplifting</option><option value="energetic">Energetic</option><option value="chill">Chill</option><option value="emotional">Emotional</option><option value="romantic">Romantic</option><option value="dark">Dark</option><option value="peaceful">Peaceful</option><option value=" triumphant">Triumphant</option></select></div>
+          <div><label for="musicBpm">Tempo (BPM) <span class="music-optional">Optional</span></label><input id="musicBpm" type="number" min="30" max="300" placeholder="Auto"></div>
+          <div><label for="musicDuration">Duration</label><select id="musicDuration"><option value="30">30 seconds</option><option value="60" selected>1 minute</option><option value="90">1 minute 30 seconds</option><option value="120">2 minutes</option><option value="180">3 minutes</option></select></div>
+        </div>
+        <button class="music-generate-button" id="musicGenerateButton" type="submit"><i data-lucide="sparkles"></i> Generate music</button>
+      </form>
+      <div class="music-status" id="musicStatus" role="status" aria-live="polite">Your generated music will appear here.</div>
+      <section class="music-result" id="musicResult" hidden>
+        <div class="music-result-heading"><div><span class="section-kicker">YOUR CREATION</span><h3 id="musicResultTitle">Your music is ready</h3></div><span class="music-ready-dot">READY</span></div>
+        <audio id="musicAudio" controls preload="none"></audio>
+        <div class="music-result-meta" id="musicResultMeta"></div>
+        <div class="music-result-actions"><a id="musicDownload" class="image-download-button" download="midcrush-music.mp3"><i data-lucide="download"></i> Download MP3</a><button type="button" id="musicNewButton" class="image-regenerate-button"><i data-lucide="plus"></i> Create another</button></div>
+        <div class="music-lyrics-result" id="musicLyricsResult" hidden><strong>Generated lyrics</strong><pre id="musicLyricsText"></pre></div>
+      </section>
+      <p class="music-disclaimer">Music generation is not connected until a secured ACE-Step server is configured. This workspace is being prepared; no generation credits are used while the engine is offline.</p>
+    </div>`;
+    const musicForm=document.getElementById("musicForm");
+    const musicPrompt=document.getElementById("musicPrompt");
+    const musicLyrics=document.getElementById("musicLyrics");
+    const musicLyricsWrap=document.getElementById("musicLyricsWrap");
+    const musicStatus=document.getElementById("musicStatus");
+    const musicButton=document.getElementById("musicGenerateButton");
+    const musicResult=document.getElementById("musicResult");
+    const musicAudio=document.getElementById("musicAudio");
+    const musicDownload=document.getElementById("musicDownload");
+    const musicLyricsResult=document.getElementById("musicLyricsResult");
+    const musicTypeInputs=[...musicForm.querySelectorAll('input[name="musicType"]')];
+    function selectedMusicType(){return musicTypeInputs.find(input=>input.checked)?.value||"song";}
+    musicTypeInputs.forEach(input=>input.addEventListener("change",()=>{
+      const instrumental=selectedMusicType()==="instrumental";
+      musicLyricsWrap.hidden=instrumental;
+      musicLyrics.disabled=instrumental;
+      if(instrumental)musicLyrics.value="";
+    }));
+    function setMusicStatus(message,isError=false){
+      musicStatus.textContent=message;
+      musicStatus.classList.toggle("music-status-error",isError);
+    }
+    async function pollMusicTask(taskId){
+      const started=Date.now();
+      while(Date.now()-started<8*60*1000){
+        await new Promise(resolve=>setTimeout(resolve,5000));
+        const response=await fetch("/api/music",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"status",taskId})});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"Could not check generation progress.");
+        const status=Number(data.status);
+        if(status===2)throw new Error("The music engine could not generate this track. Try a different description.");
+        if(status===1){
+          const track=(data.result||[]).find(item=>Number(item.status)===1&&item.file);
+          if(!track)throw new Error("The music task finished but no playable audio file was returned.");
+          return track;
+        }
+        setMusicStatus("Your music is being created. This can take a few minutes. Please keep this page open.");
+      }
+      throw new Error("This generation is taking longer than expected. Check again later.");
+    }
+    musicForm.addEventListener("submit",async event=>{
+      event.preventDefault();
+      const description=musicPrompt.value.trim();
+      if(!description){musicPrompt.focus();return;}
+      const type=selectedMusicType();
+      const genre=document.getElementById("musicGenre").value;
+      const mood=document.getElementById("musicMood").value.trim();
+      const bpm=document.getElementById("musicBpm").value.trim();
+      const duration=Number(document.getElementById("musicDuration").value);
+      const fullPrompt=description+", "+genre+", "+mood+" mood";
+      musicButton.disabled=true;
+      musicButton.innerHTML='<i data-lucide="loader-circle"></i> Starting...';
+      if(window.lucide)lucide.createIcons();
+      musicResult.hidden=true;
+      musicAudio.pause();musicAudio.removeAttribute("src");musicAudio.load();
+      setMusicStatus("Sending your request to the music engine...");
+      try{
+        const response=await fetch("/api/music",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"create",type,prompt:fullPrompt,lyrics:musicLyrics.value.trim(),duration,bpm})});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"Could not start music generation.");
+        if(!data.taskId)throw new Error("The music engine did not return a task ID.");
+        setMusicStatus("Your request is queued. Preparing your music...");
+        musicButton.innerHTML='<i data-lucide="loader-circle"></i> Generating...';
+        if(window.lucide)lucide.createIcons();
+        const track=await pollMusicTask(data.taskId);
+        const audioUrl="/api/music/audio?file="+encodeURIComponent(track.file);
+        musicAudio.src=audioUrl;
+        musicDownload.href=audioUrl;
+        musicResult.hidden=false;
+        document.getElementById("musicResultTitle").textContent=type==="instrumental"?"Your instrumental is ready":"Your song is ready";
+        document.getElementById("musicResultMeta").textContent=genre+" · "+mood+" · "+duration+" seconds";
+        const lyricsText=typeof track.lyrics==="string"?track.lyrics:"";
+        musicLyricsResult.hidden=!lyricsText||type==="instrumental";
+        document.getElementById("musicLyricsText").textContent=lyricsText;
+        setMusicStatus("Your music is ready. Press play to listen.");
+        musicResult.scrollIntoView({behavior:"smooth",block:"nearest"});
+        if(window.lucide)lucide.createIcons();
+      }catch(error){
+        setMusicStatus(error.message||"Music generation failed. Please try again.",true);
+      }finally{
+        musicButton.disabled=false;
+        musicButton.innerHTML='<i data-lucide="sparkles"></i> Generate music';
+        if(window.lucide)lucide.createIcons();
+      }
+    });
+    document.getElementById("musicNewButton").addEventListener("click",()=>{
+      musicResult.hidden=true;
+      setMusicStatus("Describe another track to get started.");
+      musicPrompt.focus();
+    });
   }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
