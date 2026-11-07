@@ -32,9 +32,13 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="recent-chats" id="recentChats" aria-label="Recent conversations"></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your recent conversations are saved on this device.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="recent-chats" id="recentChats" aria-label="Recent conversations"></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your recent conversations are saved on this device.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
+    const chatMode=document.getElementById("chatMode");
+    const chatImageFile=document.getElementById("chatImageFile");
+    const chatImagePreview=document.getElementById("chatImagePreview");
+    let attachedImageData="";
     const sendButton=chatForm.querySelector("button");
     const chatBox=document.getElementById("chatBox");
     const recentChats=document.getElementById("recentChats");
@@ -190,12 +194,47 @@ function renderWorkspace(info){
         chatInput.focus();
       }
     }
-    chatForm.addEventListener("submit",e=>{
+    chatImageFile.addEventListener("change",()=>{
+      const file=chatImageFile.files?.[0];
+      if(!file){attachedImageData="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();return;}
+      if(!["image/jpeg","image/png","image/webp"].includes(file.type)){showToast("Choose a JPG, PNG or WebP photo.");chatImageFile.value="";return;}
+      if(file.size>4*1024*1024){showToast("Choose a photo smaller than 4 MB.");chatImageFile.value="";return;}
+      const reader=new FileReader();
+      reader.onload=()=>{attachedImageData=String(reader.result||"");chatImagePreview.hidden=false;chatImagePreview.replaceChildren();const img=document.createElement("img");img.src=attachedImageData;img.alt="Photo ready to edit";const remove=document.createElement("button");remove.type="button";remove.textContent="Remove photo";remove.addEventListener("click",()=>{attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();});chatImagePreview.append(img,remove);};
+      reader.readAsDataURL(file);
+    });
+    chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";});
+    chatForm.addEventListener("submit",async e=>{
       e.preventDefault();
       const value=chatInput.value.trim();
       if(!value||sendButton.disabled)return;
-      chatInput.value="";
-      requestReply(value);
+      const mode=chatMode.value;
+      if(mode==="edit"&&!attachedImageData){showToast("Add a photo first.");return;}
+      if(mode!=="chat"){
+        ensureConversation();
+        const userText=(mode==="generate"?"[Image request] ":"[Photo edit] ")+value;
+        history.push({role:"user",content:userText});
+        persistCurrentConversation();
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent=mode==="generate"?"Generating your image...":"Editing your photo...";chatBox.appendChild(waiting);
+        chatInput.value="";sendButton.disabled=true;chatInput.disabled=true;
+        try{
+          const response=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:value,aspectRatio:"1:1",image:mode==="edit"?attachedImageData:undefined})});
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(data.error||"Image request failed.");
+          if(typeof data.image!=="string"||!data.image.startsWith("data:image/"))throw new Error("The image service returned an invalid image.");
+          waiting.textContent=mode==="generate"?"Your image is ready.":"Your edited photo is ready.";
+          const img=document.createElement("img");img.src=data.image;img.alt="AI generated image";img.className="chat-generated-image";waiting.appendChild(document.createElement("br"));waiting.appendChild(img);
+          const download=document.createElement("a");download.href=data.image;download.download="midcrush-ai-image.jpg";download.textContent="Save image";download.className="chat-image-download";waiting.appendChild(document.createElement("br"));waiting.appendChild(download);
+          history.push({role:"assistant",content:mode==="generate"?"Generated an image for: "+value:"Edited the uploaded photo: "+value});
+          persistCurrentConversation();latestReply=history[history.length-1].content;copyReplyButton.disabled=false;
+          if(mode==="edit"){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
+        }catch(error){waiting.textContent=error.message||"Could not complete the image request.";history.pop();persistCurrentConversation();}
+        finally{sendButton.disabled=false;chatInput.disabled=false;chatBox.scrollTop=chatBox.scrollHeight;chatInput.focus();}
+        return;
+      }
+      if(attachedImageData){showToast("Choose Edit Photo mode to work with an uploaded image.");return;}
+      chatInput.value="";requestReply(value);
     });
     conversations=readConversations();
     if(conversations.length){
