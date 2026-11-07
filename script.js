@@ -222,8 +222,8 @@ function renderWorkspace(info){
     }
     function isImageQuestion(value){
       const text=String(value||"").trim();
-      return /^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare|summarize|summarise|transcribe|extract)\\b/i.test(text)
-        || /\\b(read the text|what is shown|what's shown|identify this|describe this|what does .* say|translate the text)\\b/i.test(text);
+      return /^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare|summarize|summarise|transcribe|extract)\b/i.test(text)
+        || /\b(read the text|what is shown|what's shown|identify this|describe this|what does .* say|translate the text)\b/i.test(text);
     }
     function hasSpecificPhotoEditDetails(value){
       const text=String(value||"").toLowerCase();
