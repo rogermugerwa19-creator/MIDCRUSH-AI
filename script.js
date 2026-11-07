@@ -278,9 +278,37 @@ function renderWorkspace(info){
       image.onerror=()=>showToast("Could not read the uploaded photo.");
       image.src=imageData;
     }
+    function showGenerationProgress(container,mode){
+      container.querySelector(".generation-progress")?.remove();
+      const panel=document.createElement("div");
+      panel.className="generation-progress";
+      panel.setAttribute("role","status");
+      panel.setAttribute("aria-live","polite");
+      const heading=document.createElement("strong");
+      heading.textContent=mode==="edit"?"Editing your photo":"Creating your image";
+      const detail=document.createElement("span");
+      detail.className="generation-progress-detail";
+      detail.textContent="Your request has been sent to the AI model. The result will appear here when it is ready.";
+      const track=document.createElement("div");
+      track.className="generation-progress-track";
+      track.setAttribute("role","progressbar");
+      track.setAttribute("aria-label","Image generation in progress");
+      track.setAttribute("aria-valuemin","0");
+      track.setAttribute("aria-valuemax","100");
+      track.setAttribute("aria-valuetext","In progress; live percentage is not available");
+      const bar=document.createElement("span");
+      track.appendChild(bar);
+      const note=document.createElement("small");
+      note.textContent="Generating… Please keep this page open.";
+      panel.append(heading,detail,track,note);
+      container.appendChild(panel);
+      chatBox.scrollTop=chatBox.scrollHeight;
+      return {panel,detail,note};
+    }
     async function generateFromChat(prompt,style,ratio,imageData,waiting,mode){
       const button=waiting.querySelector(".chat-image-create");
       if(button){button.disabled=true;button.textContent="Creating...";}
+      const progress=showGenerationProgress(waiting,mode);
       const fullPrompt=mode==="edit"
         ? prompt+". Edit the supplied image itself. Preserve the original subject, identity, key objects and composition wherever possible. Do not create an unrelated replacement."
         : (style==="You decide"?prompt:prompt+", "+style);
@@ -313,9 +341,14 @@ function renderWorkspace(info){
         }
         persistCurrentConversation();latestReply=history[history.length-1].content;copyReplyButton.disabled=false;
       }catch(error){
-        const message=document.createElement("p");message.className="chat-image-error";message.textContent=error.message||"Could not complete the image request.";
-        waiting.appendChild(message);
-        if(button){button.disabled=false;button.textContent="Try again";}
+        progress.detail.textContent="The image could not be completed.";
+        progress.note.textContent=error.message||"Please try again.";
+        progress.panel.classList.add("generation-progress-error");
+        if(button){
+          button.disabled=false;
+          button.textContent="Try again";
+          button.addEventListener("click",()=>generateFromChat(prompt,style,ratio,imageData,waiting,mode),{once:true});
+        }
       }
       chatBox.scrollTop=chatBox.scrollHeight;
     }
@@ -341,10 +374,15 @@ function renderWorkspace(info){
       const ratioLabel=document.createElement("label");ratioLabel.textContent="Aspect ratio";
       const ratio=document.createElement("select");ratio.className="chat-image-choice";
       [["Phone / TikTok / Status — 9:16","9:16"],["YouTube / Landscape — 16:9","16:9"],["Square post — 1:1","1:1"],["Classic photo — 4:3","4:3"],["Photo landscape — 3:2","3:2"],["Photo portrait — 2:3","2:3"]].forEach(([label,value])=>{const option=document.createElement("option");option.textContent=label;option.value=value;ratio.appendChild(option);});
+      ratio.value=getRequestedAspectRatio(prompt,"1:1");
       const create=document.createElement("button");create.type="button";create.className="chat-action chat-image-create";create.textContent="Create image";
+      const approve=document.createElement("button");approve.type="button";approve.className="chat-action chat-image-approve";approve.textContent="Okay, generate";
       pendingGeneration={prompt,styleControl:style,ratioControl:ratio,imageData,waiting,mode};
       create.addEventListener("click",()=>runPendingGeneration());
-      waiting.append(heading,styleLabel,style,ratioLabel,ratio,create);chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
+      approve.addEventListener("click",()=>runPendingGeneration());
+      const hint=document.createElement("small");hint.className="generation-approval-hint";hint.textContent="You can also type “Okay”, “Yes” or “Go ahead” to start with these settings.";
+      const actions=document.createElement("div");actions.className="chat-actions";actions.append(create,approve);
+      waiting.append(heading,styleLabel,style,ratioLabel,ratio,actions,hint);chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
     }
     function showEditConfirmation(){
       pendingEditCard?.remove();
@@ -359,7 +397,8 @@ function renderWorkspace(info){
       const change=document.createElement("button");change.type="button";change.className="chat-action";change.textContent="No, change details";
       confirm.addEventListener("click",confirmPhotoEdit);
       change.addEventListener("click",()=>{pendingEdit="details";pendingEditCard=null;chatInput.placeholder="Describe what you want changed...";chatInput.focus();});
-      actions.append(confirm,change);card.append(heading,preview,summary,actions);chatBox.appendChild(card);chatBox.scrollTop=chatBox.scrollHeight;
+      const hint=document.createElement("small");hint.className="generation-approval-hint";hint.textContent="You can also type “Okay”, “Yes” or “Go ahead” to begin editing.";
+      actions.append(confirm,change);card.append(heading,preview,summary,actions,hint);chatBox.appendChild(card);chatBox.scrollTop=chatBox.scrollHeight;
     }
     chatForm.addEventListener("submit",async e=>{
       e.preventDefault();
@@ -457,7 +496,12 @@ function renderWorkspace(info){
       imageButton.disabled=true;
       imageButton.innerHTML='<i data-lucide="loader-circle"></i> Generating...';
       if(window.lucide)lucide.createIcons();
-      imageStatus.textContent="Creating your image. This may take a little while...";
+      imageStatus.replaceChildren();
+      const statusText=document.createElement("div");statusText.textContent="MIDCRUSH AI is creating your image. The image will appear here when it is ready.";
+      const progressTrack=document.createElement("div");progressTrack.className="generation-progress-track image-generation-track";progressTrack.setAttribute("role","progressbar");progressTrack.setAttribute("aria-label","Image generation in progress");progressTrack.setAttribute("aria-valuemin","0");progressTrack.setAttribute("aria-valuemax","100");progressTrack.setAttribute("aria-valuetext","In progress; live percentage is not available");
+      const progressBar=document.createElement("span");progressTrack.appendChild(progressBar);
+      const progressNote=document.createElement("small");progressNote.className="image-progress-note";progressNote.textContent="Generating… Please keep this page open.";
+      imageStatus.append(statusText,progressTrack,progressNote);
       imageResult.hidden=true;
       try{
         const response=await fetch("/api/image",{
