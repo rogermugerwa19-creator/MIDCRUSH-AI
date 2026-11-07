@@ -49,6 +49,8 @@ function renderWorkspace(info){
     let history=[];
     let latestReply="";
     let pendingEdit=null;
+    let pendingEditCard=null;
+    let pendingGeneration=null;
     let editSession=null;
     function readConversations(){
       try{
@@ -135,6 +137,7 @@ function renderWorkspace(info){
       currentChatId=null;
       history=[];
       latestReply="";
+      pendingEdit=null;pendingEditCard=null;pendingGeneration=null;editSession=null;
       renderHistory();
       renderRecentChats();
       chatInput.focus();
@@ -224,6 +227,28 @@ function renderWorkspace(info){
       const text=String(value||"").trim();
       return /^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare|summarize|summarise|transcribe|extract)\b/i.test(text)
         || /\b(read the text|what is shown|what's shown|identify this|describe this|what does .* say|translate the text)\b/i.test(text);
+    }
+    function isAffirmative(value){
+      return /^(ok|okay|yes|y|yeah|yep|sure|alright|all right|go ahead|do it|proceed|continue|confirm|confirmed|yes please|okay please|sounds good|looks good|that's right|that is right|correct|start|create it|generate it|make it|apply it)[.! ]*$/i.test(String(value||"").trim());
+    }
+    function confirmPhotoEdit(){
+      if(!editSession||!pendingEditCard)return;
+      const card=pendingEditCard;
+      const confirm=card.querySelector(".chat-image-create");
+      const change=card.querySelector(".chat-actions .chat-action:not(.chat-image-create)");
+      pendingEdit=null;
+      pendingEditCard=null;
+      if(confirm){confirm.disabled=true;confirm.textContent="Editing...";}
+      if(change)change.disabled=true;
+      generateFromChat(editSession.prompt,"You decide",editSession.ratio,editSession.currentImage,card,"edit");
+    }
+    async function runPendingGeneration(){
+      if(!pendingGeneration)return;
+      const job=pendingGeneration;
+      pendingGeneration=null;
+      const style=job.styleControl?.value||"You decide";
+      const ratio=job.ratioControl?.value||"1:1";
+      await generateFromChat(job.prompt,style,ratio,job.imageData,job.waiting,job.mode);
     }
     function hasSpecificPhotoEditDetails(value){
       const text=String(value||"").toLowerCase();
@@ -315,19 +340,22 @@ function renderWorkspace(info){
       const ratio=document.createElement("select");ratio.className="chat-image-choice";
       [["Phone / TikTok / Status — 9:16","9:16"],["YouTube / Landscape — 16:9","16:9"],["Square post — 1:1","1:1"],["Classic photo — 4:3","4:3"],["Photo landscape — 3:2","3:2"],["Photo portrait — 2:3","2:3"]].forEach(([label,value])=>{const option=document.createElement("option");option.textContent=label;option.value=value;ratio.appendChild(option);});
       const create=document.createElement("button");create.type="button";create.className="chat-action chat-image-create";create.textContent="Create image";
-      create.addEventListener("click",()=>generateFromChat(prompt,style.value,ratio.value,imageData,waiting,mode));
+      pendingGeneration={prompt,styleControl:style,ratioControl:ratio,imageData,waiting,mode};
+      create.addEventListener("click",()=>runPendingGeneration());
       waiting.append(heading,styleLabel,style,ratioLabel,ratio,create);chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
     }
     function showEditConfirmation(){
+      pendingEdit="confirm";
       const card=document.createElement("div");card.className="reply-bubble chat-edit-confirmation";
+      pendingEditCard=card;
       const heading=document.createElement("strong");heading.textContent="Confirm your photo edit";
       const preview=document.createElement("img");preview.src=editSession.currentImage;preview.alt="Photo to edit";preview.className="chat-generated-image";
       const summary=document.createElement("p");summary.textContent="I haven’t changed the photo yet. I’m planning to: "+editSession.prompt+". I’ll choose the visual style automatically and preserve the main subject and important details. The result will use "+editSession.ratio+" proportions. Is this what you’d like me to do?";
       const actions=document.createElement("div");actions.className="chat-actions";
       const confirm=document.createElement("button");confirm.type="button";confirm.className="chat-action chat-image-create";confirm.textContent="Yes, edit my photo";
       const change=document.createElement("button");change.type="button";change.className="chat-action";change.textContent="No, change details";
-      confirm.addEventListener("click",()=>{confirm.disabled=true;change.disabled=true;confirm.textContent="Editing...";generateFromChat(editSession.prompt,"You decide",editSession.ratio,editSession.currentImage,card,"edit");});
-      change.addEventListener("click",()=>{pendingEdit="details";chatInput.placeholder="Describe what you want changed...";chatInput.focus();});
+      confirm.addEventListener("click",confirmPhotoEdit);
+      change.addEventListener("click",()=>{pendingEdit="details";pendingEditCard=null;chatInput.placeholder="Describe what you want changed...";chatInput.focus();});
       actions.append(confirm,change);card.append(heading,preview,summary,actions);chatBox.appendChild(card);chatBox.scrollTop=chatBox.scrollHeight;
     }
     chatForm.addEventListener("submit",async e=>{
@@ -335,11 +363,35 @@ function renderWorkspace(info){
       const value=chatInput.value.trim();
       if(!value||sendButton.disabled)return;
       const mode=chatMode.value;
+      if(pendingEdit==="confirm"){
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        chatInput.value="";
+        if(isAffirmative(value)){confirmPhotoEdit();return;}
+        if(/^(no|nope|not quite|change|change it|edit details|different)[.! ]*$/i.test(value)){
+          pendingEdit="details";
+          pendingEditCard=null;
+          const question=document.createElement("div");question.className="reply-bubble";question.textContent="What would you like me to change in the plan?";
+          chatBox.appendChild(question);chatBox.scrollTop=chatBox.scrollHeight;chatInput.placeholder="Describe the change...";chatInput.focus();return;
+        }
+        if(editSession){
+          editSession.prompt=[editSession.prompt,value].filter(Boolean).join(". ");
+          editSession.ratio=getRequestedAspectRatio(value,editSession.ratio);
+          showEditConfirmation();return;
+        }
+      }
+      if(pendingGeneration&&isAffirmative(value)){
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        chatInput.value="";
+        await runPendingGeneration();return;
+      }
       if(pendingEdit){
         const action=pendingEdit;pendingEdit=null;
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";
-        if(action==="details"){editSession.prompt=[editSession.prompt,value].filter(Boolean).join(". ");showEditConfirmation();}
+        if(action==="details"){
+          if(isAffirmative(value)&&editSession.prompt){showEditConfirmation();}
+          else{editSession.prompt=[editSession.prompt,value].filter(Boolean).join(". ");editSession.ratio=getRequestedAspectRatio(value,editSession.ratio);showEditConfirmation();}
+        }
         else if(action==="revise"){
           editSession.prompt=value;
           const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent="Applying your next change...";
