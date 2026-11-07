@@ -33,7 +33,47 @@ function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
     target.innerHTML='<div class="workspace-card"><div class="workspace-label">Start a conversation</div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. I\'m your creative assistant workspace. You can explore the interface here while we prepare the AI connection.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="notice"><i data-lucide="info"></i><span>Preview mode: messages are displayed in this interface only. The AI model connection has not been configured yet.</span></div></div>';
-    document.getElementById("chatForm").addEventListener("submit",e=>{e.preventDefault();const input=document.getElementById("chatInput");const value=input.value.trim();if(!value)return;const box=document.getElementById("chatBox");const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;box.appendChild(bubble);const reply=document.createElement("div");reply.className="reply-bubble";reply.textContent="Your message is visible in the preview. The AI response service will be connected in a later development step.";box.appendChild(reply);input.value="";box.scrollTop=box.scrollHeight});
+    const chatForm=document.getElementById("chatForm");
+    const chatInput=document.getElementById("chatInput");
+    const sendButton=chatForm.querySelector("button");
+    const chatBox=document.getElementById("chatBox");
+    const history=[];
+    chatForm.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const value=chatInput.value.trim();
+      if(!value||sendButton.disabled)return;
+      history.push({role:"user",content:value});
+      const bubble=document.createElement("div");
+      bubble.className="message-bubble";
+      bubble.textContent=value;
+      chatBox.appendChild(bubble);
+      chatInput.value="";
+      const waiting=document.createElement("div");
+      waiting.className="reply-bubble";
+      waiting.textContent="MIDCRUSH AI is thinking...";
+      chatBox.appendChild(waiting);
+      chatBox.scrollTop=chatBox.scrollHeight;
+      sendButton.disabled=true;
+      try{
+        const response=await fetch("/api/chat",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({messages:history.slice(-12)})
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
+        const answer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
+        waiting.textContent=answer;
+        history.push({role:"assistant",content:answer});
+      }catch(error){
+        waiting.textContent=error.message||"Connection error. Please try again.";
+        history.pop();
+      }finally{
+        sendButton.disabled=false;
+        chatBox.scrollTop=chatBox.scrollHeight;
+        chatInput.focus();
+      }
+    });
   }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
