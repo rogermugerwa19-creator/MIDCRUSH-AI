@@ -32,7 +32,7 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversation</div><div class="chat-actions"><button type="button" class="chat-action deep-think-button" id="deepThinkButton" aria-pressed="false" title="Use more reasoning for the next answers"><i data-lucide="brain"></i> Deep Think <span class="deep-think-state">OFF</span></button><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="deep-think-note" id="deepThinkNote">Deep Think is off. Turn it on when a question needs extra careful reasoning.</div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your conversation stays in this page while it is open.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">AI responses can make mistakes. Check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversation</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your conversation stays in this page while it is open.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">AI responses can make mistakes. Check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const sendButton=chatForm.querySelector("button");
@@ -40,16 +40,6 @@ function renderWorkspace(info){
     let history=[];
     let latestReply="";
     const copyReplyButton=document.getElementById("copyReplyButton");
-    const deepThinkButton=document.getElementById("deepThinkButton");
-    const deepThinkNote=document.getElementById("deepThinkNote");
-    let deepThink=false;
-    deepThinkButton.addEventListener("click",()=>{
-      deepThink=!deepThink;
-      deepThinkButton.setAttribute("aria-pressed",String(deepThink));
-      deepThinkButton.classList.toggle("is-active",deepThink);
-      deepThinkButton.querySelector(".deep-think-state").textContent=deepThink?"ON":"OFF";
-      deepThinkNote.textContent=deepThink?"Deep Think is on. Answers may take longer while the AI checks the question more carefully.":"Deep Think is off. Turn it on when a question needs extra careful reasoning.";
-    });
     document.getElementById("newChatButton").addEventListener("click",()=>{history=[];latestReply="";chatBox.innerHTML='<div class="welcome-message">👋 New conversation. What would you like help with?</div>';copyReplyButton.disabled=true;chatInput.focus();});
     copyReplyButton.addEventListener("click",async()=>{if(!latestReply)return;try{await navigator.clipboard.writeText(latestReply);showToast("Reply copied.");}catch{showToast("Could not copy this reply.");}});
     async function requestReply(value, continuation=false){
@@ -70,7 +60,7 @@ function renderWorkspace(info){
         const response=await fetch("/api/chat",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({messages:history.slice(-12),deepThink})
+          body:JSON.stringify({messages:history.slice(-12)})
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok){throw new Error(data.error||"The AI service could not answer right now.");}
