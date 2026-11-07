@@ -61,7 +61,7 @@ function renderWorkspace(info){
           body:JSON.stringify({messages:history.slice(-12)})
         });
         const data=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
+        if(!response.ok){const message=data.detail?`${data.error||"AI request failed"} Details: ${data.detail}`:(data.error||"The AI service could not answer right now.");throw new Error(message);}
         const answer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
         waiting.textContent=answer;
         history.push({role:"assistant",content:answer});
