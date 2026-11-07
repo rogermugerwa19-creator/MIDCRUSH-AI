@@ -32,12 +32,11 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversation</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-level-row"><label for="chatLevel">Answer level</label><select id="chatLevel" class="chat-level"><option value="general">General</option><option value="primary">Primary school</option><option value="secondary" selected>Secondary school</option><option value="advanced">Advanced</option></select><span>Choose how detailed the explanations should be.</span></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your conversation stays in this page while it is open.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">AI responses can make mistakes. Check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversation</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your conversation stays in this page while it is open.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">AI responses can make mistakes. Check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const sendButton=chatForm.querySelector("button");
     const chatBox=document.getElementById("chatBox");
-    const chatLevel=document.getElementById("chatLevel");
     let history=[];
     let latestReply="";
     const copyReplyButton=document.getElementById("copyReplyButton");
@@ -61,7 +60,7 @@ function renderWorkspace(info){
         const response=await fetch("/api/chat",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({messages:history.slice(-12),level:chatLevel.value})
+          body:JSON.stringify({messages:history.slice(-12)})
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok){throw new Error(data.error||"The AI service could not answer right now.");}
