@@ -41,12 +41,20 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "The conversation is too long or the latest message is missing." }, 400);
   }
 
+  const levels = {
+    general: "Use clear everyday language and a balanced level of detail.",
+    primary: "Explain for a primary-school learner. Use very simple words, short sentences, familiar examples and explain new terms.",
+    secondary: "Explain for a secondary-school learner. Use correct subject terminology, clear step-by-step explanations and school-level examples.",
+    advanced: "Give a more advanced explanation with precise terminology, relevant nuance and deeper reasoning, while remaining clear."
+  };
+  const level = levels[body.level] ? body.level : "general";
+
   try {
     const result = await env.AI.run("@cf/zai-org/glm-4.7-flash", {
       messages: [
         {
           role: "system",
-          content: "You are MIDCRUSH AI, a helpful, clear and responsible assistant. Accuracy is more important than sounding confident. Before answering, check that facts, examples, definitions and classifications agree with one another. Never invent scientific names, species, statistics, sources or technical terms. If you are unsure or a fact may be outdated, say so plainly and give only what you can support. For science and school topics, use standard accepted terminology, distinguish related categories correctly, and explain important exceptions. For example, do not classify ferns as gymnosperms: ferns are seedless vascular plants that reproduce by spores. Do not describe plants as literally talking; explain chemical signalling accurately. Avoid presenting simplified phrases such as plants being the lungs of Earth as literal scientific descriptions. Use clear headings and examples when useful, and keep responses appropriate for a general audience."
+          content: "You are MIDCRUSH AI, a helpful, clear and responsible assistant. Accuracy is more important than sounding confident. Before answering, check that facts, examples, definitions and classifications agree with one another. Never invent scientific names, species, statistics, sources or technical terms. If you are unsure or a fact may be outdated, say so plainly and give only what you can support. For science and school topics, use standard accepted terminology, distinguish related categories correctly, and explain important exceptions. For example, do not classify ferns as gymnosperms: ferns are seedless vascular plants that reproduce by spores. Do not describe plants as literally talking; explain chemical signalling accurately. Avoid presenting simplified phrases such as plants being the lungs of Earth as literal scientific descriptions. " + levels[level] + " Adapt the explanation to the selected level without changing the facts. Use headings and examples when useful, and keep responses appropriate for a general audience."
         },
         ...messages
       ],
