@@ -209,6 +209,9 @@ function renderWorkspace(info){
     function isImageRequest(value){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
+    function isPhotoEditRequest(value){
+      return /\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|make it|turn it into|convert)\b/i.test(value) || /\b(background|sky|lighting|weather|rain|daytime|nighttime|sunny|dry roads?)\b/i.test(value);
+    }
     async function generateFromChat(prompt,style,ratio,imageData,waiting,mode){
       const button=waiting.querySelector(".chat-image-create");
       if(button){button.disabled=true;button.textContent="Creating...";}
@@ -313,10 +316,12 @@ function renderWorkspace(info){
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";showImageChoices(value,"generate","");return;
       }
-      if(mode==="edit"){
+      if(mode==="edit"||(mode==="chat"&&attachedImageData&&isPhotoEditRequest(value))){
         ensureConversation();history.push({role:"user",content:"[Photo edit] "+value});persistCurrentConversation();
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
-        chatInput.value="";showImageChoices(value,"edit",attachedImageData);return;
+        const imageToEdit=attachedImageData;
+        chatInput.value="";attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
+        showImageChoices(value,"edit",imageToEdit);return;
       }
       const imageToAsk=attachedImageData;
       chatInput.value="";
