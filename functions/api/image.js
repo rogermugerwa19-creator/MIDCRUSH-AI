@@ -27,8 +27,8 @@ function decodeImage(dataUrl) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.OPENAI_API_KEY) {
-    return json({ error: "Image editing is not configured yet. Add the OPENAI_API_KEY secret in your Cloudflare Pages project settings." }, 503);
+  if (!env.AI) {
+    return json({ error: "Image generation is not connected to Cloudflare Workers AI. Check the AI binding in your Cloudflare Pages settings." }, 503);
   }
 
   let body;
@@ -49,13 +49,11 @@ export async function onRequestPost({ request, env }) {
 
   try {
     const form = new FormData();
-    form.append("model", "gpt-image-2.6-sunburst");
     form.append("prompt", prompt);
-    form.append("size", `${width}x${height}`);
-    form.append("quality", "high");
-    form.append("output_format", "jpeg");
+    form.append("width", String(width));
+    form.append("height", String(height));
 
-    let endpoint = "https://api.openai.com/v1/images/generations";
+    if (body.isEdit) form.append("guidance", "6");
 
     if (body.image) {
       let image;
@@ -65,8 +63,7 @@ export async function onRequestPost({ request, env }) {
         return json({ error: error.message }, 400);
       }
       if (!image) return json({ error: "Upload a JPG, PNG or WebP image." }, 400);
-      form.append("image[]", image, "source-photo.jpg");
-      endpoint = "https://api.openai.com/v1/images/edits";
+      form.append("input_image_0", image, "reference-image");
 
       if (body.originalImage) {
         let originalImage;
@@ -76,39 +73,35 @@ export async function onRequestPost({ request, env }) {
           return json({ error: "The original reference image is invalid: " + error.message }, 400);
         }
         if (!originalImage) return json({ error: "The original reference must be a JPG, PNG or WebP image." }, 400);
-        form.append("image[]", originalImage, "original-identity-reference.jpg");
+        form.append("input_image_1", originalImage, "original-identity-reference");
       }
     }
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
-      body: form
+    const formResponse = new Response(form);
+    const result = await env.AI.run("@cf/black-forest-labs/flux-2-klein-9b", {
+      multipart: {
+        body: formResponse.body,
+        contentType: formResponse.headers.get("content-type")
+      }
     });
 
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const apiMessage = typeof result.error?.message === "string" ? result.error.message : "";
-      if (response.status === 401 || response.status === 403) {
-        return json({ error: "OpenAI rejected the API key or the account does not have image API access. Check the key, billing and organisation verification." }, 502);
-      }
-      if (response.status === 429) {
-        return json({ error: "The OpenAI image API rate limit or available balance has been reached. Check API usage and billing, then try again." }, 429);
-      }
-      return json({ error: apiMessage || "The OpenAI image service could not complete this request." }, response.status >= 500 ? 502 : response.status);
-    }
-
-    const imageData = result.data?.[0]?.b64_json;
-    if (typeof imageData !== "string" || !imageData) {
+    if (!result || typeof result.image !== "string" || !result.image) {
       return json({ error: "The image model returned no image. Please try a different prompt." }, 502);
     }
 
     return json({
-      image: "data:image/jpeg;base64," + imageData,
-      model: "GPT Image 2.6 Sunburst",
+      image: "data:image/jpeg;base64," + result.image,
+      model: "FLUX.2 Klein 9B",
       aspectRatio
     });
-  } catch {
-    return json({ error: "Image generation or editing failed because the image service could not be reached. Please try again." }, 502);
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (/3036|10,000 neurons|daily free allocation/i.test(message)) {
+      return json({ error: "The free daily Cloudflare AI allowance has been used up. It resets at 00:00 UTC. Try again after it resets." }, 429);
+    }
+    if (/3040|out of capacity|capacity/i.test(message)) {
+      return json({ error: "The image service is busy right now. Please wait a little and try again." }, 503);
+    }
+    return json({ error: "Image generation or editing failed. Please try again in a moment." }, 502);
   }
 }
