@@ -49,6 +49,7 @@ function renderWorkspace(info){
     let history=[];
     let latestReply="";
     let pendingEdit=null;
+    let editSession=null;
     function readConversations(){
       try{
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
@@ -211,19 +212,37 @@ function renderWorkspace(info){
     async function generateFromChat(prompt,style,ratio,imageData,waiting,mode){
       const button=waiting.querySelector(".chat-image-create");
       if(button){button.disabled=true;button.textContent="Creating...";}
-      const fullPrompt=style==="You decide"?prompt:prompt+", "+style;
+      const fullPrompt=mode==="edit"
+        ? prompt+". Edit the supplied image itself. Preserve the original subject, identity, key objects and composition wherever possible. Do not create an unrelated replacement."
+        : (style==="You decide"?prompt:prompt+", "+style);
       try{
         const response=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:fullPrompt,aspectRatio:ratio,image:imageData||undefined})});
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"Image request failed.");
         if(typeof data.image!=="string"||!data.image.startsWith("data:image/"))throw new Error("The image service returned an invalid image.");
         waiting.replaceChildren();
-        waiting.append(document.createTextNode(mode==="edit"?"Your edited photo is ready.":"Your image is ready."));
-        const img=document.createElement("img");img.src=data.image;img.alt="AI generated image";img.className="chat-generated-image";waiting.appendChild(img);
-        const download=document.createElement("a");download.href=data.image;download.download="midcrush-ai-image.jpg";download.textContent="Save image";download.className="chat-image-download";waiting.appendChild(download);
-        history.push({role:"assistant",content:(mode==="edit"?"Edited the uploaded photo: ":"Generated an image for: ")+prompt+" ("+ratio+")"});
+        if(mode==="edit"){
+          editSession.currentImage=data.image;
+          const title=document.createElement("strong");title.textContent="Your edited photo";
+          const comparison=document.createElement("div");comparison.className="chat-edit-comparison";
+          const left=document.createElement("div");const ll=document.createElement("small");ll.textContent="Original";
+          const oi=document.createElement("img");oi.src=editSession.originalImage;oi.alt="Original uploaded photo";oi.className="chat-generated-image";left.append(ll,oi);
+          const right=document.createElement("div");const rl=document.createElement("small");rl.textContent="Edited";
+          const ei=document.createElement("img");ei.src=data.image;ei.alt="Edited photo";ei.className="chat-generated-image";right.append(rl,ei);
+          comparison.append(left,right);waiting.append(title,comparison);
+          const actions=document.createElement("div");actions.className="chat-actions";
+          const revise=document.createElement("button");revise.type="button";revise.className="chat-action";revise.textContent="Make another change";
+          const save=document.createElement("a");save.href=data.image;save.download="midcrush-ai-edited.jpg";save.textContent="Save edited photo";save.className="chat-image-download";
+          revise.addEventListener("click",()=>{pendingEdit="revise";chatInput.placeholder="Describe the next change...";chatInput.focus();});
+          actions.append(revise,save);waiting.appendChild(actions);
+          history.push({role:"assistant",content:"Edited the uploaded photo: "+prompt});
+        }else{
+          waiting.append(document.createTextNode("Your image is ready."));
+          const img=document.createElement("img");img.src=data.image;img.alt="AI generated image";img.className="chat-generated-image";waiting.appendChild(img);
+          const download=document.createElement("a");download.href=data.image;download.download="midcrush-ai-image.jpg";download.textContent="Save image";download.className="chat-image-download";waiting.appendChild(download);
+          history.push({role:"assistant",content:"Generated an image for: "+prompt+" ("+ratio+")"});
+        }
         persistCurrentConversation();latestReply=history[history.length-1].content;copyReplyButton.disabled=false;
-        if(mode==="edit"){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
       }catch(error){
         const message=document.createElement("p");message.className="chat-image-error";message.textContent=error.message||"Could not complete the image request.";
         waiting.appendChild(message);
@@ -233,14 +252,16 @@ function renderWorkspace(info){
     }
     function showImageChoices(prompt,mode,imageData){
       if(mode==="edit"){
-        pendingEdit={prompt,imageData};
-        const question=document.createElement("div");
-        question.className="reply-bubble";
-        question.textContent="What aspect ratio would you like? Reply with 9:16 (phone/Status), 16:9 (YouTube), 1:1 (square), 4:3, 3:2 or 2:3. I’ll choose the editing style for you.";
-        chatBox.appendChild(question);
-        chatBox.scrollTop=chatBox.scrollHeight;
-        chatInput.placeholder="Enter an aspect ratio, e.g. 9:16...";
-        chatInput.focus();
+        const image=new Image();
+        image.onload=()=>{
+          const ratio=image.naturalWidth/image.naturalHeight;
+          const choices=[["1:1",1],["16:9",16/9],["9:16",9/16],["4:3",4/3],["3:2",3/2],["2:3",2/3]];
+          const best=choices.sort((a,b)=>Math.abs(a[1]-ratio)-Math.abs(b[1]-ratio))[0][0];
+          editSession={originalImage:imageData,currentImage:imageData,prompt,ratio:best};
+          showEditConfirmation();
+        };
+        image.onerror=()=>showToast("Could not read the uploaded photo.");
+        image.src=imageData;
         return;
       }
       const waiting=document.createElement("div");waiting.className="reply-bubble chat-image-choices";
@@ -255,20 +276,34 @@ function renderWorkspace(info){
       create.addEventListener("click",()=>generateFromChat(prompt,style.value,ratio.value,imageData,waiting,mode));
       waiting.append(heading,styleLabel,style,ratioLabel,ratio,create);chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
     }
+    function showEditConfirmation(){
+      const card=document.createElement("div");card.className="reply-bubble chat-edit-confirmation";
+      const heading=document.createElement("strong");heading.textContent="Review your edit";
+      const preview=document.createElement("img");preview.src=editSession.currentImage;preview.alt="Photo to edit";preview.className="chat-generated-image";
+      const summary=document.createElement("p");summary.textContent="I’ll apply this change: "+editSession.prompt+". I’ll choose the visual style automatically and preserve the main subject and important details. Output shape: "+editSession.ratio+" (matched to your original photo).";
+      const actions=document.createElement("div");actions.className="chat-actions";
+      const confirm=document.createElement("button");confirm.type="button";confirm.className="chat-action chat-image-create";confirm.textContent="Confirm and edit";
+      const change=document.createElement("button");change.type="button";change.className="chat-action";change.textContent="Change details";
+      confirm.addEventListener("click",()=>{confirm.disabled=true;change.disabled=true;confirm.textContent="Editing...";generateFromChat(editSession.prompt,"You decide",editSession.ratio,editSession.currentImage,card,"edit");});
+      change.addEventListener("click",()=>{pendingEdit="details";chatInput.placeholder="Describe what you want changed...";chatInput.focus();});
+      actions.append(confirm,change);card.append(heading,preview,summary,actions);chatBox.appendChild(card);chatBox.scrollTop=chatBox.scrollHeight;
+    }
     chatForm.addEventListener("submit",async e=>{
       e.preventDefault();
       const value=chatInput.value.trim();
       if(!value||sendButton.disabled)return;
       const mode=chatMode.value;
       if(pendingEdit){
-        const match=value.match(/(1:1|16:9|9:16|4:3|3:2|2:3)/);
-        if(!match){showToast("Please reply with a ratio such as 9:16 or 16:9.");return;}
-        const edit=pendingEdit;pendingEdit=null;
+        const action=pendingEdit;pendingEdit=null;
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
-        chatInput.value="";chatInput.placeholder="Describe how to edit your photo...";
-        const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent="Editing your photo...";
-        chatBox.appendChild(waiting);
-        generateFromChat(edit.prompt,"You decide",match[1],edit.imageData,waiting,"edit");
+        chatInput.value="";
+        if(action==="details"){editSession.prompt=value;showEditConfirmation();}
+        else if(action==="revise"){
+          editSession.prompt=value;
+          const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent="Applying your next change...";
+          chatBox.appendChild(waiting);
+          generateFromChat(value,"You decide",editSession.ratio,editSession.currentImage,waiting,"edit");
+        }
         return;
       }
       if(mode==="edit"&&!attachedImageData){showToast("Add a photo first.");return;}
