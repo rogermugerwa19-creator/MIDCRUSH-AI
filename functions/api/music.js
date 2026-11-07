@@ -80,12 +80,12 @@ export async function onRequestPost({ request, env }) {
     const taskId = typeof body.taskId === "string" ? body.taskId.trim() : "";
     if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) return json({ error: "The music task ID is invalid." }, 400);
     try {
-      const statusResult = await trebloRequest(env, "/generations/status/" + encodeURIComponent(taskId));
+      const statusResult = await trebloRequest(env, "/generations/status/" + encodeURIComponent(taskId), { method: "GET" });
       const status = typeof statusResult === "string" ? statusResult : statusResult?.status;
       if (status === "FAILURE") return json({ status: 2, result: [] });
       if (status !== "SUCCESS") return json({ status: 0, result: [], providerStatus: status || "GENERATING" });
 
-      const generation = await trebloRequest(env, "/generations/" + encodeURIComponent(taskId));
+      const generation = await trebloRequest(env, "/generations/" + encodeURIComponent(taskId), { method: "GET" });
       const paths = Array.isArray(generation?.song_paths) ? generation.song_paths : [];
       const file = paths.find(path => typeof path === "string" && path.startsWith("https://cdn.treblo.com/"));
       if (!file) return json({ error: "Treblo completed the song but did not return a recognized audio URL." }, 502);
