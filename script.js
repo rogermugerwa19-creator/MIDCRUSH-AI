@@ -32,19 +32,119 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversation</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your conversation stays in this page while it is open.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">AI responses can make mistakes. Check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="recent-chats" id="recentChats" aria-label="Recent conversations"></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your recent conversations are saved on this device.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const sendButton=chatForm.querySelector("button");
     const chatBox=document.getElementById("chatBox");
+    const recentChats=document.getElementById("recentChats");
+    const copyReplyButton=document.getElementById("copyReplyButton");
+    const STORAGE_KEY="midcrush_ai_recent_chats_v1";
+    let conversations=[];
+    let currentChatId=null;
     let history=[];
     let latestReply="";
-    const copyReplyButton=document.getElementById("copyReplyButton");
-    document.getElementById("newChatButton").addEventListener("click",()=>{history=[];latestReply="";chatBox.innerHTML='<div class="welcome-message">👋 New conversation. What would you like help with?</div>';copyReplyButton.disabled=true;chatInput.focus();});
+    function readConversations(){
+      try{
+        const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+        return Array.isArray(saved)?saved.filter(c=>c&&typeof c.id==="string"&&Array.isArray(c.messages)): [];
+      }catch{return [];}
+    }
+    function saveConversations(){
+      try{
+        conversations=conversations.slice(0,30);
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(conversations));
+      }catch{showToast("Could not save chats. Your browser storage may be full.");}
+      renderRecentChats();
+    }
+    function renderRecentChats(){
+      recentChats.replaceChildren();
+      const heading=document.createElement("div");
+      heading.className="recent-chats-heading";
+      heading.textContent=conversations.length?"RECENT CHATS":"NO SAVED CHATS YET";
+      recentChats.appendChild(heading);
+      conversations.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).forEach(conversation=>{
+        const item=document.createElement("div");
+        item.className="recent-chat-item"+(conversation.id===currentChatId?" active":"");
+        const open=document.createElement("button");
+        open.type="button";
+        open.className="recent-chat-open";
+        open.textContent=conversation.title||"New conversation";
+        open.title=conversation.title||"New conversation";
+        open.addEventListener("click",()=>loadConversation(conversation.id));
+        const remove=document.createElement("button");
+        remove.type="button";
+        remove.className="recent-chat-delete";
+        remove.setAttribute("aria-label","Delete "+(conversation.title||"conversation"));
+        remove.textContent="×";
+        remove.addEventListener("click",()=>{
+          conversations=conversations.filter(c=>c.id!==conversation.id);
+          if(currentChatId===conversation.id){currentChatId=null;history=[];latestReply="";renderHistory();copyReplyButton.disabled=true;}
+          saveConversations();
+        });
+        item.append(open,remove);
+        recentChats.appendChild(item);
+      });
+    }
+    function renderHistory(){
+      chatBox.replaceChildren();
+      if(!history.length){
+        const welcome=document.createElement("div");
+        welcome.className="welcome-message";
+        welcome.textContent="👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task.";
+        chatBox.appendChild(welcome);
+      }else{
+        history.forEach(message=>{
+          const bubble=document.createElement("div");
+          bubble.className=message.role==="user"?"message-bubble":"reply-bubble";
+          bubble.textContent=message.content;
+          chatBox.appendChild(bubble);
+        });
+      }
+      chatBox.scrollTop=chatBox.scrollHeight;
+      latestReply=[...history].reverse().find(m=>m.role==="assistant")?.content||"";
+      copyReplyButton.disabled=!latestReply;
+    }
+    function loadConversation(id){
+      const conversation=conversations.find(c=>c.id===id);
+      if(!conversation)return;
+      currentChatId=id;
+      history=conversation.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string");
+      renderHistory();
+      renderRecentChats();
+      chatInput.focus();
+    }
+    function persistCurrentConversation(){
+      if(!currentChatId)return;
+      const conversation=conversations.find(c=>c.id===currentChatId);
+      if(!conversation)return;
+      conversation.messages=history.slice(-80);
+      const firstUser=history.find(m=>m.role==="user");
+      conversation.title=firstUser?firstUser.content.slice(0,55)+(firstUser.content.length>55?"…":""):"New conversation";
+      conversation.updatedAt=Date.now();
+      conversations.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+      saveConversations();
+    }
+    function startNewChat(){
+      currentChatId=null;
+      history=[];
+      latestReply="";
+      renderHistory();
+      renderRecentChats();
+      chatInput.focus();
+    }
+    function ensureConversation(){
+      if(currentChatId)return;
+      currentChatId="chat_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8);
+      conversations.unshift({id:currentChatId,title:"New conversation",messages:[],updatedAt:Date.now()});
+    }
+    document.getElementById("newChatButton").addEventListener("click",startNewChat);
     copyReplyButton.addEventListener("click",async()=>{if(!latestReply)return;try{await navigator.clipboard.writeText(latestReply);showToast("Reply copied.");}catch{showToast("Could not copy this reply.");}});
     async function requestReply(value, continuation=false){
       if(!value||sendButton.disabled)return;
+      ensureConversation();
       history.push({role:"user",content:value});
+      persistCurrentConversation();
       const bubble=document.createElement("div");
       bubble.className="message-bubble";
       bubble.textContent=value;
@@ -63,12 +163,13 @@ function renderWorkspace(info){
           body:JSON.stringify({messages:history.slice(-12)})
         });
         const data=await response.json().catch(()=>({}));
-        if(!response.ok){throw new Error(data.error||"The AI service could not answer right now.");}
+        if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
         const answer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
         waiting.textContent=answer;
         latestReply=continuation&&latestReply?latestReply+"\n\n"+answer:answer;
         copyReplyButton.disabled=false;
         history.push({role:"assistant",content:answer});
+        persistCurrentConversation();
         if(data.truncated){
           const continueButton=document.createElement("button");
           continueButton.type="button";
@@ -81,6 +182,7 @@ function renderWorkspace(info){
       }catch(error){
         waiting.textContent=error.message||"Connection error. Please try again.";
         history.pop();
+        persistCurrentConversation();
       }finally{
         sendButton.disabled=false;
         chatInput.disabled=false;
@@ -95,6 +197,14 @@ function renderWorkspace(info){
       chatInput.value="";
       requestReply(value);
     });
+    conversations=readConversations();
+    if(conversations.length){
+      conversations.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+      loadConversation(conversations[0].id);
+    }else{
+      renderHistory();
+      renderRecentChats();
+    }
   }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
