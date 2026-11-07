@@ -5,7 +5,7 @@ const toolInfo = {
   voice:{title:"AI Voice",kicker:"SOUND & SPEAK",description:"Explore voice generation and audio experiences.",icon:"audio-lines"},
   coding:{title:"AI Coding",kicker:"BUILD & DEVELOP",description:"Get help understanding, writing and improving code.",icon:"code-2"},
   documents:{title:"Documents",kicker:"PLAN & ORGANISE",description:"Create and refine letters, reports, notes and more.",icon:"file-text"},
-  music:{title:"AI Music",kicker:"CREATE YOUR SOUND",description:"Explore music ideas, styles and audio creation.",icon:"music-2"},
+  music:{title:"AI Music",kicker:"CREATE YOUR SOUND",description:"Create original songs with vocals or instrumental tracks.",icon:"music-2",kind:"music"},
   website:{title:"Website Builder",kicker:"DESIGN & LAUNCH",description:"Plan and create modern website experiences.",icon:"panels-top-left"},
   editing:{title:"Photo Editing",kicker:"REFINE & REMIX",description:"Explore creative edits and image improvements.",icon:"wand-sparkles"}
 };
@@ -578,7 +578,7 @@ function renderWorkspace(info){
         </div>
         <div class="music-settings-grid">
           <div><label for="musicGenre">Genre</label><select id="musicGenre"><option value="Afrobeat">Afrobeat</option><option value="Afropop">Afropop</option><option value="Amapiano">Amapiano</option><option value="Pop">Pop</option><option value="Hip-hop">Hip-hop</option><option value="R&B">R&amp;B</option><option value="Gospel">Gospel</option><option value="Dancehall">Dancehall</option><option value="Electronic">Electronic</option><option value="Rock">Rock</option><option value="Jazz">Jazz</option><option value="Acoustic">Acoustic</option><option value="Classical">Classical</option></select></div>
-          <div><label for="musicMood">Mood</label><select id="musicMood"><option value="uplifting">Uplifting</option><option value="energetic">Energetic</option><option value="chill">Chill</option><option value="emotional">Emotional</option><option value="romantic">Romantic</option><option value="dark">Dark</option><option value="peaceful">Peaceful</option><option value=" triumphant">Triumphant</option></select></div>
+          <div><label for="musicMood">Mood</label><select id="musicMood"><option value="uplifting">Uplifting</option><option value="energetic">Energetic</option><option value="chill">Chill</option><option value="emotional">Emotional</option><option value="romantic">Romantic</option><option value="dark">Dark</option><option value="peaceful">Peaceful</option><option value="triumphant">Triumphant</option></select></div>
           <div><label for="musicBpm">Tempo (BPM) <span class="music-optional">Optional</span></label><input id="musicBpm" type="number" min="30" max="300" placeholder="Auto"></div>
           <div><label for="musicDuration">Duration</label><select id="musicDuration"><option value="30">30 seconds</option><option value="60" selected>1 minute</option><option value="90">1 minute 30 seconds</option><option value="120">2 minutes</option><option value="180">3 minutes</option></select></div>
         </div>
