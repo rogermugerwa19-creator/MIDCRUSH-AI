@@ -8,42 +8,23 @@ function json(data, status = 200) {
   });
 }
 
-function getApiBase(env) {
-  const raw = typeof env.ACESTEP_API_URL === "string" ? env.ACESTEP_API_URL.trim() : "";
-  if (!raw) return null;
-  try {
-    const url = new URL(raw);
-    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) return null;
-    return url.toString().replace(/\/$/, "");
-  } catch {
-    return null;
-  }
-}
-
 export async function onRequestGet({ request, env }) {
   const requestUrl = new URL(request.url);
   const file = requestUrl.searchParams.get("file") || "";
-  if (!file.startsWith("/v1/audio?")) return json({ error: "Invalid audio file reference." }, 400);
-
-  const base = getApiBase(env);
-  if (!base) return json({ error: "Music generation is not configured yet." }, 503);
-
   let audioUrl;
   try {
-    audioUrl = new URL(file, base);
-    if (audioUrl.origin !== new URL(base).origin || audioUrl.pathname !== "/v1/audio" || !audioUrl.searchParams.has("path")) {
+    audioUrl = new URL(file);
+    if (audioUrl.protocol !== "https:" || audioUrl.hostname !== "cdn.treblo.com" ||
+        !audioUrl.pathname.startsWith("/pubapi/generations3/")) {
       return json({ error: "Invalid audio file reference." }, 400);
     }
   } catch {
     return json({ error: "Invalid audio file reference." }, 400);
   }
 
-  const headers = {};
-  if (env.ACESTEP_API_KEY) headers.Authorization = `Bearer ${env.ACESTEP_API_KEY}`;
-
   try {
-    const upstream = await fetch(audioUrl.toString(), { headers });
-    if (!upstream.ok) return json({ error: "The generated audio is not available yet." }, upstream.status === 404 ? 404 : 502);
+    const upstream = await fetch(audioUrl.toString());
+    if (!upstream.ok) return json({ error: "The generated audio is no longer available. Treblo may remove songs after its retention period." }, upstream.status === 404 ? 404 : 502);
     return new Response(upstream.body, {
       status: 200,
       headers: {
