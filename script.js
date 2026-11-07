@@ -324,7 +324,7 @@ function renderWorkspace(info){
         ? prompt+". EDIT THE PROVIDED PHOTO, DO NOT RECREATE IT FROM SCRATCH. Keep the exact same person from the reference: preserve their face, facial features, skin tone, age, hairstyle, expression and identity. Do not beautify, reshape, replace or reinterpret the person's face or body. Keep all areas not requested for editing unchanged. Make only the specific requested change, with realistic lighting and natural integration. "+(hasOriginalReference?"Use reference image 0 as the current photo to edit. Use reference image 1 as the original identity reference; the person's face and appearance must match image 1 exactly.":"Use reference image 0 as the source photo and preserve the person's appearance exactly.")
         : (style==="You decide"?prompt:prompt+", "+style);
       try{
-        const response=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:fullPrompt,aspectRatio:ratio,image:imageData||undefined,originalImage:mode==="edit"&&editSession?.originalImage!==imageData?editSession.originalImage:undefined})});
+        const response=await fetch("/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:fullPrompt,aspectRatio:ratio,image:imageData||undefined,originalImage:mode==="edit"&&editSession?.originalImage!==imageData?editSession.originalImage:undefined,isEdit:mode==="edit"})});
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"Image request failed.");
         if(typeof data.image!=="string"||!data.image.startsWith("data:image/"))throw new Error("The image service returned an invalid image.");
