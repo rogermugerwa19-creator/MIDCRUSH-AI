@@ -33,7 +33,8 @@ ACE-Step is asynchronous: a successful create response means the task was queued
 - The ACE-Step server has not been deployed or connected.
 - No end-to-end generation has been tested.
 - Per-user authentication, rate limiting, abuse controls and public queue limits are not implemented.
-- Audio retention and long-term generation history are not implemented.
+- The browser now keeps up to 20 recent generation records in localStorage on that device/browser only. This is not account-synced or server-backed history, and playback can stop working if the ACE-Step host deletes generated files.
+- Server-side audio retention and account-synced generation history are not implemented.
 - Free public generation cannot be promised; GPU hosting and capacity still need to be arranged.
 Do not merge/launch this as a public generation service until the backend is secured, tested and capacity limits are decided.
 
