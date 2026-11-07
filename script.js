@@ -210,7 +210,7 @@ function renderWorkspace(info){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
     function isPhotoEditRequest(value){
-      return /\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|convert|turn)\b/i.test(String(value||""));
+      return /\\b(edit|modify|change|transform|retouch|enhance|brighten|darken|remove|replace|erase|recolor|recolour|restore|clean up|convert|turn|make)\\b/i.test(String(value||""));
     }
     function hasSpecificPhotoEditDetails(value){
       const text=String(value||"").toLowerCase();
