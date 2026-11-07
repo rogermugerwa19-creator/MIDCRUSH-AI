@@ -32,12 +32,16 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="workspace-label">Start a conversation</div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. I\'m your creative assistant workspace. You can explore the interface here while we prepare the AI connection.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="notice"><i data-lucide="info"></i><span>The chat endpoint is now in the project. Connect the Workers AI binding in Cloudflare and redeploy to activate live answers.</span></div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversation</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your conversation stays in this page while it is open.</div></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">AI responses can make mistakes. Check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const sendButton=chatForm.querySelector("button");
     const chatBox=document.getElementById("chatBox");
-    const history=[];
+    let history=[];
+    let latestReply="";
+    const copyReplyButton=document.getElementById("copyReplyButton");
+    document.getElementById("newChatButton").addEventListener("click",()=>{history=[];latestReply="";chatBox.innerHTML='<div class="welcome-message">👋 New conversation. What would you like help with?</div>';copyReplyButton.disabled=true;chatInput.focus();});
+    copyReplyButton.addEventListener("click",async()=>{if(!latestReply)return;try{await navigator.clipboard.writeText(latestReply);showToast("Reply copied.");}catch{showToast("Could not copy this reply.");}});
     chatForm.addEventListener("submit",async e=>{
       e.preventDefault();
       const value=chatInput.value.trim();
@@ -61,9 +65,11 @@ function renderWorkspace(info){
           body:JSON.stringify({messages:history.slice(-12)})
         });
         const data=await response.json().catch(()=>({}));
-        if(!response.ok){const message=data.detail?`${data.error||"AI request failed"} Details: ${data.detail}`:(data.error||"The AI service could not answer right now.");throw new Error(message);}
+        if(!response.ok){throw new Error(data.error||"The AI service could not answer right now.");}
         const answer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
         waiting.textContent=answer;
+        latestReply=answer;
+        copyReplyButton.disabled=false;
         history.push({role:"assistant",content:answer});
       }catch(error){
         waiting.textContent=error.message||"Connection error. Please try again.";
