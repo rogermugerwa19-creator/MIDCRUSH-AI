@@ -229,7 +229,9 @@ function renderWorkspace(info){
         || /\b(read the text|what is shown|what's shown|identify this|describe this|what does .* say|translate the text)\b/i.test(text);
     }
     function isAffirmative(value){
-      return /^(ok|okay|yes|y|yeah|yep|sure|alright|all right|go ahead|do it|proceed|continue|confirm|confirmed|yes please|okay please|sounds good|looks good|that's right|that is right|correct|start|create it|generate it|make it|apply it)[.! ]*$/i.test(String(value||"").trim());
+      const text=String(value||"").toLowerCase().replace(/[’']/g,"").replace(/[.,!?]/g," ").replace(/\s+/g," ").trim();
+      if(/^(ok|okay|yes|y|yeah|yep|sure|alright|all right|go ahead|do it|proceed|continue|confirm|confirmed|yes please|okay please|sounds good|looks good|that works|thats fine|thats right|that is right|correct|start|create it|generate it|make it|apply it)$/.test(text))return true;
+      return /^(ok|okay|yes|yeah|yep|sure|alright|all right) (please )?(go ahead|do it|proceed|continue|create it|generate it|make it|apply it|start)$/.test(text);
     }
     function confirmPhotoEdit(){
       if(!editSession||!pendingEditCard)return;
@@ -345,6 +347,7 @@ function renderWorkspace(info){
       waiting.append(heading,styleLabel,style,ratioLabel,ratio,create);chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
     }
     function showEditConfirmation(){
+      pendingEditCard?.remove();
       pendingEdit="confirm";
       const card=document.createElement("div");card.className="reply-bubble chat-edit-confirmation";
       pendingEditCard=card;
