@@ -230,8 +230,8 @@ function renderWorkspace(info){
     }
     function isAffirmative(value){
       const text=String(value||"").toLowerCase().replace(/[’']/g,"").replace(/[.,!?]/g," ").replace(/\s+/g," ").trim();
-      if(/^(ok|okay|yes|y|yeah|yep|sure|alright|all right|go ahead|do it|proceed|continue|confirm|confirmed|yes please|okay please|sounds good|looks good|that works|thats fine|thats right|that is right|correct|start|create it|generate it|make it|apply it)$/.test(text))return true;
-      return /^(ok|okay|yes|yeah|yep|sure|alright|all right) (please )?(go ahead|do it|proceed|continue|create it|generate it|make it|apply it|start)$/.test(text);
+      if(/^(ok|okay|yes|y|yeah|yep|sure|alright|all right|go ahead|do it|do that|proceed|continue|confirm|confirmed|yes please|okay please|sounds good|looks good|that works|thats fine|thats right|that is right|correct|start|start editing|edit it|create it|generate it|make it|apply it|go for it)$/.test(text))return true;
+      return /^(ok|okay|yes|yeah|yep|sure|alright|all right) (please )?(go ahead|do it|do that|proceed|continue|create it|generate it|make it|apply it|start|start editing|edit it|go for it)$/.test(text);
     }
     function confirmPhotoEdit(){
       if(!editSession||!pendingEditCard)return;
@@ -431,8 +431,27 @@ function renderWorkspace(info){
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";
         if(action==="details"){
-          if(isAffirmative(value)&&editSession.prompt){showEditConfirmation();}
-          else{editSession.prompt=[editSession.prompt,value].filter(Boolean).join(". ");editSession.ratio=getRequestedAspectRatio(value,editSession.ratio);showEditConfirmation();}
+          if(isAffirmative(value)&&editSession?.prompt){
+            const waiting=document.createElement("div");
+            waiting.className="reply-bubble";
+            waiting.textContent="Starting your photo edit...";
+            chatBox.appendChild(waiting);
+            chatBox.scrollTop=chatBox.scrollHeight;
+            chatInput.placeholder="Describe another change if needed...";
+            generateFromChat(editSession.prompt,"You decide",editSession.ratio,editSession.currentImage,waiting,"edit");
+          }else if(isAffirmative(value)){
+            const question=document.createElement("div");
+            question.className="reply-bubble";
+            question.textContent="Tell me the change you want, and I’ll apply it to the uploaded photo.";
+            chatBox.appendChild(question);
+            chatBox.scrollTop=chatBox.scrollHeight;
+            chatInput.placeholder="Describe the change...";
+            chatInput.focus();
+          }else{
+            editSession.prompt=[editSession.prompt,value].filter(Boolean).join(". ");
+            editSession.ratio=getRequestedAspectRatio(value,editSession.ratio);
+            showEditConfirmation();
+          }
         }
         else if(action==="revise"){
           editSession.prompt=value;
