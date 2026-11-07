@@ -32,7 +32,7 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="recent-chats" id="recentChats" aria-label="Recent conversations"></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your recent conversations are saved on this device.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your recent conversations are saved on this device.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const chatMode=document.getElementById("chatMode");
@@ -41,7 +41,7 @@ function renderWorkspace(info){
     let attachedImageData="";
     const sendButton=chatForm.querySelector("button");
     const chatBox=document.getElementById("chatBox");
-    const recentChats=document.getElementById("recentChats");
+    const recentChats=document.getElementById("sidebarRecents");
     const copyReplyButton=document.getElementById("copyReplyButton");
     const STORAGE_KEY="midcrush_ai_recent_chats_v1";
     let conversations=[];
@@ -68,22 +68,25 @@ function renderWorkspace(info){
     }
     function renderRecentChats(){
       recentChats.replaceChildren();
-      const heading=document.createElement("div");
-      heading.className="recent-chats-heading";
-      heading.textContent=conversations.length?"RECENT CHATS":"NO SAVED CHATS YET";
-      recentChats.appendChild(heading);
+      if(!conversations.length){
+        const empty=document.createElement("div");
+        empty.className="sidebar-recents-empty";
+        empty.textContent="No conversations yet";
+        recentChats.appendChild(empty);
+        return;
+      }
       conversations.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).forEach(conversation=>{
         const item=document.createElement("div");
-        item.className="recent-chat-item"+(conversation.id===currentChatId?" active":"");
+        item.className="sidebar-recent-item"+(conversation.id===currentChatId?" active":"");
         const open=document.createElement("button");
         open.type="button";
-        open.className="recent-chat-open";
+        open.className="sidebar-recent-open";
         open.textContent=conversation.title||"New conversation";
         open.title=conversation.title||"New conversation";
         open.addEventListener("click",()=>loadConversation(conversation.id));
         const remove=document.createElement("button");
         remove.type="button";
-        remove.className="recent-chat-delete";
+        remove.className="sidebar-recent-delete";
         remove.setAttribute("aria-label","Delete "+(conversation.title||"conversation"));
         remove.textContent="×";
         remove.addEventListener("click",()=>{
