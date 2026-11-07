@@ -50,7 +50,7 @@ export async function onRequestPost({ request, env }) {
         },
         ...messages
       ],
-      max_completion_tokens: 700,
+      max_completion_tokens: 1400,
       temperature: 0.65,
       chat_template_kwargs: { enable_thinking: false }
     });
@@ -75,7 +75,8 @@ export async function onRequestPost({ request, env }) {
     if (!answer) {
       return json({ error: "The AI service returned an unexpected response. Please try again." }, 502);
     }
-    return json({ response: answer });
+    const finishReason = result?.choices?.[0]?.finish_reason || result?.choices?.[0]?.finishReason || null;
+    return json({ response: answer, truncated: finishReason === "length" || finishReason === "max_tokens" });
   } catch (error) {
     return json({ error: "MIDCRUSH AI is temporarily unavailable. Please try again shortly." }, 502);
   }
