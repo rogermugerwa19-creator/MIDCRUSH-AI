@@ -274,6 +274,10 @@ function renderWorkspace(info){
         const choices=[["1:1",1],["16:9",16/9],["9:16",9/16],["4:3",4/3],["3:2",3/2],["2:3",2/3]];
         const best=choices.sort((a,b)=>Math.abs(a[1]-ratio)-Math.abs(b[1]-ratio))[0][0];
         editSession={originalImage:imageData,currentImage:imageData,prompt:initialPrompt,ratio:getRequestedAspectRatio(initialPrompt,best)};
+        if(initialPrompt.trim()){
+          showEditConfirmation();
+          return;
+        }
         pendingEdit="details";
         const question=document.createElement("div");question.className="reply-bubble";
         question.textContent="What would you like me to change in this photo? For example, the background, lighting, colours, or an object.";
