@@ -631,10 +631,23 @@ function renderWorkspace(info){
       showWebsiteProgress();
       websiteResult.hidden=true;
       try{
-        const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,siteType:websiteType.value,designStyle:websiteStyle.value})});
-        const data=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(data.error||"The website could not be generated.");
-        if(typeof data.html!=="string"||!data.html.toLowerCase().includes("</html>"))throw new Error("The AI returned incomplete website code. Try a simpler brief.");
+        let response;
+        try{
+          response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,siteType:websiteType.value,designStyle:websiteStyle.value})});
+        }catch(networkError){
+          throw new Error("Could not reach the website-generation service. Check your connection and try again. ("+(networkError?.message||"Network error")+")");
+        }
+        const rawResponse=await response.text();
+        let data={};
+        try{data=JSON.parse(rawResponse)||{};}catch{}
+        if(!response.ok){
+          if(data.error)throw new Error(data.error);
+          if(response.status===524||response.status===504)throw new Error("Cloudflare timed out while generating the website. Try a shorter description.");
+          throw new Error("The website service returned HTTP "+response.status+". The server did not provide a readable error message.");
+        }
+        if(typeof data.html!=="string"||!data.html.toLowerCase().includes("</html>")){
+          throw new Error(data.error||"The AI service responded, but did not return a complete HTML website.");
+        }
         websiteCode.value=data.html;
         websiteResult.hidden=false;
         websiteStatus.textContent="Your website is ready. Preview it, edit its code or download the HTML file.";
