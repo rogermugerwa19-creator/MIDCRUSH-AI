@@ -126,3 +126,23 @@
 .website-code-file-row select{background:#101124;border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:#f5f5ff;font:11px var(--font)}
 .website-preview-panel iframe{min-height:650px}
 @media(max-width:620px){.website-page-tabs{width:100%}.website-page-tabs .website-device-button{flex:1}}
+
+/* Conversational website refinement */
+.website-chat-panel{margin-top:16px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#0d1020}
+.website-chat-heading{display:grid;gap:4px;margin-bottom:12px}
+.website-chat-heading strong{color:#f0ecff;font-size:13px}
+.website-chat-heading span{color:#9698b2;font-size:10px;line-height:1.5}
+.website-chat-messages{display:flex;flex-direction:column;gap:9px;max-height:240px;overflow-y:auto;padding:4px 2px 12px}
+.website-chat-message{max-width:88%;padding:10px 12px;border-radius:12px;font-size:11px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.website-chat-message.assistant{align-self:flex-start;background:#1a1d33;color:#d9d7ed;border:1px solid #ffffff0d}
+.website-chat-message.user{align-self:flex-end;background:#40316f;color:#fff}
+.website-chat-message.thinking{opacity:.7}
+.website-chat-form{display:flex;align-items:flex-end;gap:9px}
+.website-chat-form textarea{flex:1;min-width:0;min-height:48px;max-height:130px;resize:vertical;background:#101124;border:1px solid var(--line);border-radius:10px;padding:11px 12px;color:#f5f5ff;outline:none;font:11px/1.5 var(--font)}
+.website-chat-form textarea:focus{border-color:#9277ed}
+.website-chat-form button{min-height:42px;padding:0 15px;border:0;border-radius:9px;background:linear-gradient(120deg,#7956dc,#4c79e8);color:#fff;font-size:10px;font-weight:750;cursor:pointer}
+.website-chat-form button:disabled{opacity:.55;cursor:wait}
+.website-chat-suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.website-chat-suggestions button{background:#171a2d;border:1px solid var(--line);border-radius:999px;padding:7px 10px;color:#b9b5d2;font-size:9px;cursor:pointer}
+.website-chat-suggestions button:hover{border-color:#9277ed;color:#fff}
+@media(max-width:620px){.website-chat-form{align-items:stretch;flex-direction:column}.website-chat-form button{width:100%;min-height:42px}.website-chat-message{max-width:96%}}
