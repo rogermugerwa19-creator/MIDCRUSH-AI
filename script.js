@@ -618,8 +618,7 @@ function renderWorkspace(info){
       currentPreviewUrl=URL.createObjectURL(blob);
       websitePreview.onload=()=>{websiteResultLabel.textContent=label||"Preview loaded";};
       websitePreview.onerror=()=>{websiteResultLabel.textContent="Preview failed to load";setWebsiteError("The HTML was generated, but the browser could not load it in the preview frame.");};
-      websitePreview.src="about:blank";
-      requestAnimationFrame(()=>{websitePreview.src=currentPreviewUrl;});
+      websitePreview.src=currentPreviewUrl;
     }
     function showWebsiteProgress(){
       websiteStatus.replaceChildren();
