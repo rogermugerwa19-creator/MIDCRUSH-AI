@@ -84,7 +84,7 @@ export async function onRequestPost({ request, env }) {
           content: "Website type: " + siteType + "\nDesign direction: " + designStyle + "\n\nBuild this website:\n" + prompt
         }
       ],
-      max_completion_tokens: 8000,
+      max_completion_tokens: 4000,
       chat_template_kwargs: { enable_thinking: false },
       temperature: 0.2
     });
@@ -106,13 +106,39 @@ export async function onRequestPost({ request, env }) {
 
     return json({ html, model: "Cloudflare Workers AI · GLM 4.7 Flash" });
   } catch (error) {
-    const message = String(error?.message || "");
+    const message = String(error?.message || error || "Unknown error");
+    console.error("MIDCRUSH website generation error:", message);
     if (/3036|10,000 neurons|daily free allocation/i.test(message)) {
       return json({ error: "The free daily Cloudflare AI allowance has been used up. It resets at 00:00 UTC." }, 429);
     }
     if (/3040|out of capacity|capacity/i.test(message)) {
-      return json({ error: "The AI service is busy. Please try again in a little while." }, 503);
+      return json({ error: "The AI service is busy right now. Try again shortly." }, 503);
     }
-    return json({ error: "Website generation failed. Please try again." }, 502);
+    if (/5007|3042|no such model|model.*not found|invalid model/i.test(message)) {
+      return json({ error: "Cloudflare could not find the configured website AI model. The model configuration needs to be corrected." }, 502);
+    }
+    if (/5035|workers paid plan/i.test(message)) {
+      return json({ error: "Cloudflare says this AI model requires a paid Workers plan, so this free setup cannot run it." }, 403);
+    }
+    if (/3007|3008|timeout|timed out|deadline/i.test(message)) {
+      return json({ error: "Cloudflare timed out while generating the website. Try a shorter description." }, 504);
+    }
+    if (/3006|request too large|payload too large/i.test(message)) {
+      return json({ error: "The website request is too large. Shorten the description and try again." }, 413);
+    }
+    if (/5016|model agreement/i.test(message)) {
+      return json({ error: "Cloudflare requires an account agreement before this AI model can be used." }, 403);
+    }
+    if (/3023|account blocked|account not allowed|5018|3041/i.test(message)) {
+      return json({ error: "Cloudflare is not allowing this account to use the selected AI model. Check the Workers AI account and model access." }, 403);
+    }
+    const safeMessage = message
+      .replace(/Bearer\\s+[^\\s]+/gi, "Bearer [hidden]")
+      .replace(/(?:api[_-]?key|token|secret)\\s*[:=]\\s*[^\\s,;]+/gi, "$1=[hidden]")
+      .replace(/[\\r\\n]+/g, " ")
+      .slice(0, 180);
+    return json({ error: safeMessage && safeMessage !== "Unknown error"
+      ? "Website generation error: " + safeMessage
+      : "Website generation failed for an unknown reason. Check the Cloudflare Pages function logs." }, 502);
   }
 }
