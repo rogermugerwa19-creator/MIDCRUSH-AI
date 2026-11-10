@@ -580,6 +580,12 @@ function renderWorkspace(info){
         <div class=\"website-preview-tools\" id=\"websitePreviewTools\"><span>Preview</span><div><button type=\"button\" id=\"websiteDesktopView\" class=\"website-device-button active\">Desktop</button><button type=\"button\" id=\"websiteMobileView\" class=\"website-device-button\">Mobile</button><button type=\"button\" id=\"websiteRefreshPreview\" class=\"website-device-button\">Refresh</button></div></div>\
         <div class=\"website-preview-panel\" id=\"websitePreviewPanel\"><iframe id=\"websitePreview\" title=\"Generated website preview\" sandbox=\"\" referrerpolicy=\"no-referrer\"></iframe></div>\
         <div class=\"website-code-panel\" id=\"websiteCodePanel\" hidden><textarea id=\"websiteCode\" spellcheck=\"false\" aria-label=\"Generated website HTML code\"></textarea><div class=\"website-code-actions\"><button type=\"button\" class=\"chat-action\" id=\"websiteCopyCode\">Copy code</button><button type=\"button\" class=\"chat-action chat-image-create\" id=\"websiteUpdatePreview\">Update preview</button></div></div>\
+        <div class=\"website-chat-panel\">\
+          <div class=\"website-chat-heading\"><strong>Keep building with AI</strong><span>Describe a change and MIDCRUSH AI will update this website.</span></div>\
+          <div class=\"website-chat-messages\" id=\"websiteChatMessages\" aria-live=\"polite\"><div class=\"website-chat-message assistant\">Your website is ready. You can ask me to add sections, change the design, improve content or adjust the navigation.</div></div>\
+          <form class=\"website-chat-form\" id=\"websiteChatForm\"><textarea id=\"websiteChatInput\" rows=\"2\" maxlength=\"1200\" required placeholder=\"E.g. Add a Latest Uploads section and make the movie cards wider...\"></textarea><button type=\"submit\" id=\"websiteChatSend\">Send change</button></form>\
+          <div class=\"website-chat-suggestions\"><button type=\"button\" data-website-suggestion=\"Add more useful details to each section.\">Add more details</button><button type=\"button\" data-website-suggestion=\"Improve the navigation and make it easier to use.\">Improve navigation</button><button type=\"button\" data-website-suggestion=\"Make the design more polished and visually interesting.\">Improve design</button></div>\
+        </div>\
         <div class=\"website-result-footer\"><span>All website sections and navigation are contained in this one HTML file.</span><button type=\"button\" id=\"websiteBuildAnother\">Build another website</button></div>\
       </section>\
       <p class=\"website-builder-note\">Download gives you one standalone HTML file. Navigation links move between sections in that file. Online hosting, databases and user accounts are not included automatically.</p>\
@@ -599,8 +605,21 @@ function renderWorkspace(info){
     const websitePreviewTab=document.getElementById("websitePreviewTab");
     const websiteCodeTab=document.getElementById("websiteCodeTab");
     const websiteResultLabel=document.getElementById("websiteResultLabel");
+    const websiteChatForm=document.getElementById("websiteChatForm");
+    const websiteChatInput=document.getElementById("websiteChatInput");
+    const websiteChatMessages=document.getElementById("websiteChatMessages");
+    const websiteChatSend=document.getElementById("websiteChatSend");
     let currentWebsiteHtml="";
     let currentPreviewUrl="";
+    let currentSiteData=null;
+    function addWebsiteChatMessage(message,role){
+      const bubble=document.createElement("div");
+      bubble.className="website-chat-message "+role;
+      bubble.textContent=message;
+      websiteChatMessages.appendChild(bubble);
+      websiteChatMessages.scrollTop=websiteChatMessages.scrollHeight;
+      return bubble;
+    }
     function setWebsiteView(view){
       const isCode=view==="code";
       websitePreviewPanel.hidden=isCode;
@@ -654,16 +673,49 @@ function renderWorkspace(info){
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"The website could not be generated.");
         if(typeof data.html!=="string"||!data.html.includes("</html>"))throw new Error("The builder did not return a complete HTML file. Please try again.");
-        if(!data.html.includes('id="home"')||!data.html.includes('id="about"')||!data.html.includes('id="services"')||!data.html.includes('id="contact"')){
-          throw new Error("The generated website is missing one or more sections. Please build it again.");
+        if(!/<section\\b/i.test(data.html)||!data.siteData||!Array.isArray(data.siteData.sections)||data.siteData.sections.length<2){
+          throw new Error("The generated website is missing its content sections. Please build it again.");
         }
+        currentSiteData=data.siteData;
         websiteCode.value=data.html;
+        websiteChatMessages.replaceChildren();
+        addWebsiteChatMessage("Your website is ready. Tell me what you would like to add, remove or improve, and I will update this same website.","assistant");
         websiteResult.hidden=false;
-        websiteStatus.textContent="Your complete one-file website is ready. Use the navigation inside the preview to move between sections.";
+        websiteStatus.textContent="Your complete one-file website is ready. Continue refining it in the conversation below.";
         loadWebsitePreview(data.html,"Single HTML website");
       }catch(error){setWebsiteError(error.message||"Website generation failed. Please try again.");}
       finally{websiteBuildButton.disabled=false;websiteBuildButton.textContent="Build website";}
     });
+    websiteChatForm.addEventListener("submit",async event=>{
+      event.preventDefault();
+      const instruction=websiteChatInput.value.trim();
+      if(!instruction||!currentSiteData||websiteChatSend.disabled)return;
+      addWebsiteChatMessage(instruction,"user");
+      websiteChatInput.value="";
+      websiteChatSend.disabled=true;
+      websiteChatSend.textContent="Updating…";
+      const thinking=addWebsiteChatMessage("Updating your website…","assistant thinking");
+      try{
+        const response=await fetch("/api/website",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({mode:"revise",prompt:instruction,siteType:websiteType.value,designStyle:currentSiteData.designStyle||websiteStyle.value,currentSiteData})
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"I couldn't update the website. Please try again.");
+        if(typeof data.html!=="string"||!data.html.includes("</html>")||!data.siteData)throw new Error("The AI returned an incomplete website update. Please try again.");
+        currentSiteData=data.siteData;
+        websiteCode.value=data.html;
+        loadWebsitePreview(data.html,"Website updated");
+        thinking.textContent="Done. I've updated the website preview. You can ask for another change.";
+        websiteStatus.textContent="Website updated. Existing sections were kept unless your change asked to alter them.";
+      }catch(error){thinking.textContent=error.message||"The website could not be updated.";}
+      finally{websiteChatSend.disabled=false;websiteChatSend.textContent="Send change";websiteChatInput.focus();}
+    });
+    document.querySelectorAll("[data-website-suggestion]").forEach(button=>button.addEventListener("click",()=>{
+      websiteChatInput.value=button.dataset.websiteSuggestion||"";
+      websiteChatInput.focus();
+    }));
     websitePreviewTab.addEventListener("click",()=>setWebsiteView("preview"));
     websiteCodeTab.addEventListener("click",()=>setWebsiteView("code"));
     document.getElementById("websiteDesktopView").addEventListener("click",()=>{
