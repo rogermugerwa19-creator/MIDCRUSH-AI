@@ -673,7 +673,7 @@ function renderWorkspace(info){
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"The website could not be generated.");
         if(typeof data.html!=="string"||!data.html.includes("</html>"))throw new Error("The builder did not return a complete HTML file. Please try again.");
-        if(!/<section\\b/i.test(data.html)||!data.siteData||!Array.isArray(data.siteData.sections)||data.siteData.sections.length<2){
+        if(!data.html.toLowerCase().includes("<section")||!data.siteData||!Array.isArray(data.siteData.sections)||data.siteData.sections.length<2){
           throw new Error("The generated website is missing its content sections. Please build it again.");
         }
         currentSiteData=data.siteData;
