@@ -562,7 +562,28 @@ function renderWorkspace(info){
     imageForm.addEventListener("submit",event=>{event.preventDefault();generateImage();});
     regenerateImageButton.addEventListener("click",generateImage);
   }else if(info.kind==="website"){
-    target.innerHTML = "<div class=\"workspace-card website-builder-workspace\">\n  <div class=\"website-builder-intro\"><div class=\"workspace-label\">Build a website with AI</div><p>Describe the site you need. MIDCRUSH AI will write the page, then you can preview it, edit its code and download the HTML file.</p></div>\n  <form class=\"website-builder-form\" id=\"websiteBuilderForm\">\n    <label for=\"websitePrompt\">What kind of website should I build?</label>\n    <textarea id=\"websitePrompt\" maxlength=\"2800\" rows=\"5\" required placeholder=\"Example: Create a modern website for a Ugandan photography studio. Include a hero section, services, a photo gallery, about section and contact details with placeholders. Use a premium black and gold design.\"></textarea>\n    <div class=\"website-builder-options\">\n      <div class=\"website-builder-field\"><label for=\"websiteType\">Website type</label><select id=\"websiteType\"><option>General website</option><option>Business landing page</option><option>Personal portfolio</option><option>Restaurant or café</option><option>School website</option><option>Product catalogue</option><option>Blog or magazine</option><option>Event website</option></select></div>\n      <div class=\"website-builder-field\"><label for=\"websiteStyle\">Design style</label><select id=\"websiteStyle\"><option>Modern and polished</option><option>Minimal and clean</option><option>Bold and colourful</option><option>Elegant and premium</option><option>Dark and cinematic</option></select></div>\n    </div>\n    <div class=\"website-builder-examples\"><span>Quick starts</span><button type=\"button\" data-website-preset=\"portfolio\">Portfolio</button><button type=\"button\" data-website-preset=\"restaurant\">Restaurant</button><button type=\"button\" data-website-preset=\"school\">School</button><button type=\"button\" data-website-preset=\"business\">Business</button></div>\n    <div class=\"website-builder-submit-row\"><button type=\"submit\" class=\"image-generate-button\" id=\"websiteBuildButton\">Build website</button><span>Powered by Cloudflare Workers AI</span></div>\n  </form>\n  <div class=\"website-builder-status\" id=\"websiteBuilderStatus\" role=\"status\" aria-live=\"polite\">Your website preview will appear here after generation.</div>\n  <section class=\"website-builder-result\" id=\"websiteBuilderResult\" hidden>\n    <div class=\"website-result-toolbar\"><div class=\"website-result-title\"><strong>Your website</strong><span id=\"websiteResultLabel\">Preview ready</span></div><div class=\"website-result-actions\"><button type=\"button\" class=\"chat-action\" id=\"websitePreviewTab\" aria-pressed=\"true\">Preview</button><button type=\"button\" class=\"chat-action\" id=\"websiteCodeTab\" aria-pressed=\"false\">Code</button><button type=\"button\" class=\"chat-action\" id=\"websiteDownload\">Download HTML</button></div></div>\n    <div class=\"website-preview-tools\" id=\"websitePreviewTools\"><span>Preview</span><div><button type=\"button\" id=\"websiteDesktopView\" class=\"website-device-button active\">Desktop</button><button type=\"button\" id=\"websiteMobileView\" class=\"website-device-button\">Mobile</button><button type=\"button\" id=\"websiteRefreshPreview\" class=\"website-device-button\">Refresh</button></div></div>\n    <div class=\"website-preview-panel\" id=\"websitePreviewPanel\"><iframe id=\"websitePreview\" title=\"Generated website preview\" sandbox=\"allow-scripts\" referrerpolicy=\"no-referrer\"></iframe></div>\n    <div class=\"website-code-panel\" id=\"websiteCodePanel\" hidden><textarea id=\"websiteCode\" spellcheck=\"false\" aria-label=\"Generated website HTML code\"></textarea><div class=\"website-code-actions\"><button type=\"button\" class=\"chat-action\" id=\"websiteCopyCode\">Copy code</button><button type=\"button\" class=\"chat-action chat-image-create\" id=\"websiteUpdatePreview\">Update preview</button></div></div>\n    <div class=\"website-result-footer\"><span>Preview runs in an isolated frame. Forms and external connections are disabled.</span><button type=\"button\" id=\"websiteBuildAnother\">Build another website</button></div>\n  </section>\n  <p class=\"website-builder-note\">This version creates a downloadable single-page HTML website and uses Cloudflare’s shared daily AI allowance. Hosting, custom domains, databases and user accounts are not included automatically.</p>\n</div>";
+    target.innerHTML = "<div class=\"workspace-card website-builder-workspace\">\
+      <div class=\"website-builder-intro\"><div class=\"workspace-label\">Build a multi-page website with AI</div><p>Create a website with separate Home, About, Services and Contact pages. Preview each page, edit its HTML and download the complete website project.</p></div>\
+      <form class=\"website-builder-form\" id=\"websiteBuilderForm\">\
+        <label for=\"websitePrompt\">What kind of website should I build?</label>\
+        <textarea id=\"websitePrompt\" maxlength=\"2800\" rows=\"5\" required placeholder=\"Example: Create a modern website for a Ugandan photography studio. Include the studio story, photography services, sample packages as placeholders and contact information placeholders.\"></textarea>\
+        <div class=\"website-builder-options\">\
+          <div class=\"website-builder-field\"><label for=\"websiteType\">Website type</label><select id=\"websiteType\"><option>General website</option><option>Business landing page</option><option>Personal portfolio</option><option>Restaurant or café</option><option>School website</option><option>Product catalogue</option><option>Blog or magazine</option><option>Event website</option></select></div>\
+          <div class=\"website-builder-field\"><label for=\"websiteStyle\">Design style</label><select id=\"websiteStyle\"><option>Modern and polished</option><option>Minimal and clean</option><option>Bold and colourful</option><option>Elegant and premium</option><option>Dark and cinematic</option></select></div>\
+        </div>\
+        <div class=\"website-builder-examples\"><span>Quick starts</span><button type=\"button\" data-website-preset=\"portfolio\">Portfolio</button><button type=\"button\" data-website-preset=\"restaurant\">Restaurant</button><button type=\"button\" data-website-preset=\"school\">School</button><button type=\"button\" data-website-preset=\"business\">Business</button></div>\
+        <div class=\"website-builder-submit-row\"><button type=\"submit\" class=\"image-generate-button\" id=\"websiteBuildButton\">Build website</button><span>Creates four linked HTML pages</span></div>\
+      </form>\
+      <div class=\"website-builder-status\" id=\"websiteBuilderStatus\" role=\"status\" aria-live=\"polite\">Your website preview will appear here after generation.</div>\
+      <section class=\"website-builder-result\" id=\"websiteBuilderResult\" hidden>\
+        <div class=\"website-result-toolbar\"><div class=\"website-result-title\"><strong>Your website project</strong><span id=\"websiteResultLabel\">Preview ready</span></div><div class=\"website-result-actions\"><button type=\"button\" class=\"chat-action\" id=\"websitePreviewTab\" aria-pressed=\"true\">Preview</button><button type=\"button\" class=\"chat-action\" id=\"websiteCodeTab\" aria-pressed=\"false\">Code</button><button type=\"button\" class=\"chat-action\" id=\"websiteDownload\">Download website ZIP</button></div></div>\
+        <div class=\"website-preview-tools\" id=\"websitePreviewTools\"><span>Open a page</span><div class=\"website-page-tabs\"><button type=\"button\" class=\"website-device-button active\" data-preview-page=\"index.html\">Home</button><button type=\"button\" class=\"website-device-button\" data-preview-page=\"about.html\">About</button><button type=\"button\" class=\"website-device-button\" data-preview-page=\"services.html\">Services</button><button type=\"button\" class=\"website-device-button\" data-preview-page=\"contact.html\">Contact</button><button type=\"button\" id=\"websiteDesktopView\" class=\"website-device-button active\">Desktop</button><button type=\"button\" id=\"websiteMobileView\" class=\"website-device-button\">Mobile</button><button type=\"button\" id=\"websiteRefreshPreview\" class=\"website-device-button\">Refresh</button></div></div>\
+        <div class=\"website-preview-panel\" id=\"websitePreviewPanel\"><iframe id=\"websitePreview\" title=\"Generated multi-page website preview\" sandbox=\"allow-scripts\" referrerpolicy=\"no-referrer\"></iframe></div>\
+        <div class=\"website-code-panel\" id=\"websiteCodePanel\" hidden><div class=\"website-code-file-row\"><label for=\"websiteCodeFileSelect\">Edit page</label><select id=\"websiteCodeFileSelect\"><option value=\"index.html\">index.html</option></select></div><textarea id=\"websiteCode\" spellcheck=\"false\" aria-label=\"Generated website HTML code\"></textarea><div class=\"website-code-actions\"><button type=\"button\" class=\"chat-action\" id=\"websiteCopyCode\">Copy code</button><button type=\"button\" class=\"chat-action chat-image-create\" id=\"websiteUpdatePreview\">Update preview</button></div></div>\
+        <div class=\"website-result-footer\"><span>Download and extract the ZIP to keep all four pages linked together.</span><button type=\"button\" id=\"websiteBuildAnother\">Build another website</button></div>\
+      </section>\
+      <p class=\"website-builder-note\">The ZIP contains separate HTML pages with working navigation. You can edit each page and add more pages later. Hosting and databases are not included automatically.</p>\
+    </div>";
     const websiteForm=document.getElementById("websiteBuilderForm");
     const websitePrompt=document.getElementById("websitePrompt");
     const websiteType=document.getElementById("websiteType");
@@ -572,70 +593,115 @@ function renderWorkspace(info){
     const websiteResult=document.getElementById("websiteBuilderResult");
     const websitePreview=document.getElementById("websitePreview");
     const websiteCode=document.getElementById("websiteCode");
+    const websiteCodeFileSelect=document.getElementById("websiteCodeFileSelect");
     const websitePreviewPanel=document.getElementById("websitePreviewPanel");
     const websiteCodePanel=document.getElementById("websiteCodePanel");
     const websitePreviewTools=document.getElementById("websitePreviewTools");
     const websitePreviewTab=document.getElementById("websitePreviewTab");
     const websiteCodeTab=document.getElementById("websiteCodeTab");
     const websiteResultLabel=document.getElementById("websiteResultLabel");
+    let websiteFiles=[];
+    let activePreviewFile="index.html";
+    let activeCodeFile="index.html";
+    const pageNames={"index.html":"Home","about.html":"About","services.html":"Services","contact.html":"Contact"};
+    function getWebsiteFile(name){return websiteFiles.find(file=>file.name===name);}
+    function saveCodeFile(){const file=getWebsiteFile(activeCodeFile);if(file)file.content=websiteCode.value;}
     function setWebsiteView(view){
       const isCode=view==="code";
+      if(!isCode)saveCodeFile();
       websitePreviewPanel.hidden=isCode;
       websiteCodePanel.hidden=!isCode;
       websitePreviewTools.hidden=isCode;
       websitePreviewTab.setAttribute("aria-pressed",String(!isCode));
       websiteCodeTab.setAttribute("aria-pressed",String(isCode));
+      if(isCode)loadCodeFile(activeCodeFile);
     }
-    function loadWebsitePreview(html,label){
+    function loadCodeFile(name){
+      const file=getWebsiteFile(name);
+      if(!file)return;
+      activeCodeFile=name;
+      websiteCodeFileSelect.value=name;
+      websiteCode.value=file.content;
+    }
+    function cleanPreviewHtml(html){
+      return String(html||"")
+        .replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi,"")
+        .replace(/<meta\s+name=["']referrer["'][^>]*>/gi,"");
+    }
+    function loadWebsitePreview(name,label){
+      const file=getWebsiteFile(name);
+      if(!file)return;
+      activePreviewFile=name;
       setWebsiteView("preview");
-      websiteResultLabel.textContent=label||"Loading preview…";
-      const diagnosticScript=[
-        "<script>(()=>{",
-        "const diagnose=()=>{",
-        "const body=document.body;if(!body)return;",
-        "const text=(body.innerText||body.textContent||'').replace(/\\s+/g,' ').trim();",
-        "const visual=body.querySelector('img,svg,canvas,video,table,button,input,select,textarea');",
-        "const style=getComputedStyle(body);",
-        "const hidden=style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0;",
-        "if((text.length<8&&!visual)||hidden){",
-        "document.documentElement.removeAttribute('hidden');body.removeAttribute('hidden');",
-        "body.style.cssText='display:block!important;visibility:visible!important;opacity:1!important;min-height:100vh!important;margin:0!important;padding:26px!important;box-sizing:border-box!important;background:#f7f7fb!important;color:#222!important;font:15px/1.6 Arial,sans-serif!important';",
-        "body.innerHTML=\"<main style='max-width:620px;margin:8vh auto;padding:28px;border:1px solid #dedbea;border-radius:16px;background:white;color:#24213b;box-shadow:0 12px 40px #17132b12'><h2 style='margin:0 0 12px'>The preview is blank</h2><p style='margin:0 0 12px'>The AI returned a page, but this preview could not find visible website content.</p><p style='margin:0'>Open the <b>Code</b> tab to inspect the HTML, then try <b>Update preview</b>. If the code is also nearly empty, generate the site again with a shorter description.</p></main>\";",
-        "}",
-        "};",
-        "window.addEventListener('load',()=>setTimeout(diagnose,1200));",
-        "setTimeout(diagnose,2500);",
-        "})();</script>"
-      ].join("");
-      const source=String(html||"");
-      const closeBody=source.toLowerCase().lastIndexOf("</body>");
-      const previewSource=closeBody>=0?source.slice(0,closeBody)+diagnosticScript+source.slice(closeBody):source+diagnosticScript;
-      websitePreview.srcdoc="<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>body{margin:0;padding:28px;font:14px Arial,sans-serif;color:#333;background:#fff}main{max-width:560px;margin:10vh auto;text-align:center}p{color:#666;line-height:1.6}</style></head><body><main><h2>Loading your website preview…</h2><p>The generated page is being opened in the preview window.</p></main></body></html>";
-      requestAnimationFrame(()=>{websitePreview.srcdoc=previewSource;websiteResultLabel.textContent=label||"Preview ready";});
+      websiteResultLabel.textContent=label||("Preview: "+pageNames[name]);
+      document.querySelectorAll("[data-preview-page]").forEach(button=>button.classList.toggle("active",button.dataset.previewPage===name));
+      const navBridge="<script>(function(){document.addEventListener('click',function(event){const link=event.target.closest('a[href]');if(!link)return;const target=link.getAttribute('href').split(/[?#]/)[0].split('/').pop();if(['index.html','about.html','services.html','contact.html'].includes(target)){event.preventDefault();parent.postMessage({type:'midcrush-preview-page',file:target},'*');}});})();</scr"+"ipt>";
+      let html=cleanPreviewHtml(file.content);
+      const close=html.toLowerCase().lastIndexOf("</body>");
+      html=close>=0?html.slice(0,close)+navBridge+html.slice(close):html+navBridge;
+      websitePreview.srcdoc="";
+      requestAnimationFrame(()=>{websitePreview.srcdoc=html;});
     }
-    function updateWebsitePreview(){
-      loadWebsitePreview(websiteCode.value,"Preview updated");
+    window.addEventListener("message",event=>{
+      if(event.source!==websitePreview.contentWindow)return;
+      if(event.data?.type!=="midcrush-preview-page"||!pageNames[event.data.file])return;
+      loadWebsitePreview(event.data.file);
+    });
+    function makeZip(files){
+      const encoder=new TextEncoder();
+      const chunks=[],central=[];
+      const crc32=bytes=>{
+        let crc=0xffffffff;
+        for(const byte of bytes){crc^=byte;for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}
+        return (crc^0xffffffff)>>>0;
+      };
+      let offset=0;
+      for(const file of files){
+        const name=encoder.encode(file.name);
+        const data=encoder.encode(file.content);
+        const crc=crc32(data);
+        const local=new Uint8Array(30+name.length);
+        const lv=new DataView(local.buffer);
+        lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(6,0x0800,true);
+        lv.setUint16(8,0,true);lv.setUint16(10,0,true);lv.setUint16(12,0x21,true);
+        lv.setUint32(14,crc,true);lv.setUint32(18,data.length,true);lv.setUint32(22,data.length,true);
+        lv.setUint16(26,name.length,true);lv.setUint16(28,0,true);local.set(name,30);
+        chunks.push(local,data);
+        const cent=new Uint8Array(46+name.length);
+        const cv=new DataView(cent.buffer);
+        cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);
+        cv.setUint16(8,0x0800,true);cv.setUint16(10,0,true);cv.setUint16(12,0,true);cv.setUint16(14,0x21,true);
+        cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);
+        cv.setUint16(28,name.length,true);cv.setUint16(30,0,true);cv.setUint16(32,0,true);
+        cv.setUint16(34,0,true);cv.setUint16(36,0,true);cv.setUint32(38,0,true);
+        cv.setUint32(42,offset,true);cent.set(name,46);central.push(cent);
+        offset+=local.length+data.length;
+      }
+      const centralSize=central.reduce((sum,x)=>sum+x.length,0);
+      const end=new Uint8Array(22);const ev=new DataView(end.buffer);
+      ev.setUint32(0,0x06054b50,true);ev.setUint16(4,0,true);ev.setUint16(6,0,true);
+      ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);
+      ev.setUint32(12,centralSize,true);ev.setUint32(16,offset,true);ev.setUint16(20,0,true);
+      return new Blob([...chunks,...central,end],{type:"application/zip"});
     }
     function showWebsiteProgress(){
       websiteStatus.replaceChildren();
       const title=document.createElement("strong");title.textContent="Building your website";
-      const detail=document.createElement("span");detail.className="generation-progress-detail";detail.textContent="The AI is writing your page and preparing the preview.";
-      const track=document.createElement("div");track.className="generation-progress-track";
-      track.setAttribute("role","progressbar");track.setAttribute("aria-label","Website generation in progress");track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");track.setAttribute("aria-valuetext","In progress; live percentage is not available");
+      const detail=document.createElement("span");detail.className="generation-progress-detail";detail.textContent="Creating page content and linking the four pages.";
+      const track=document.createElement("div");track.className="generation-progress-track";track.setAttribute("role","progressbar");track.setAttribute("aria-label","Website generation in progress");track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");track.setAttribute("aria-valuetext","In progress; live percentage is not available");
       const bar=document.createElement("span");track.appendChild(bar);
-      const note=document.createElement("small");note.textContent="Generating website code… Keep this page open.";
+      const note=document.createElement("small");note.textContent="Generating website pages… Keep this page open.";
       websiteStatus.append(title,detail,track,note);
     }
     function setWebsiteError(message){
       websiteStatus.replaceChildren();
-      const error=document.createElement("span");error.className="website-error";error.textContent=message;
-      websiteStatus.appendChild(error);
+      const error=document.createElement("span");error.className="website-error";error.textContent=message;websiteStatus.appendChild(error);
     }
     const presets={
-      portfolio:{type:"Personal portfolio",prompt:"Create a modern personal portfolio website for a creative professional. Include a strong hero introduction, about section, skills, selected projects, services and a contact section with replaceable placeholder name and contact details."},
-      restaurant:{type:"Restaurant or café",prompt:"Create a stylish website for a restaurant in Uganda. Include a welcoming hero section, menu categories with clearly labelled sample prices, about section, opening-hours placeholders, location placeholder and contact section. Do not invent an address or phone number."},
-      school:{type:"School website",prompt:"Create a professional school website. Include a hero section, welcome message, about the school, academic programmes, admissions information, school life, news cards and contact placeholders. Do not invent real school facts or contact details."},
-      business:{type:"Business landing page",prompt:"Create a polished small-business website with a hero section, services, why choose us, process, testimonials as clearly marked placeholders, frequently asked questions and a contact form demo. Do not invent real claims or contact details."}
+      portfolio:{type:"Personal portfolio",prompt:"Create a modern personal portfolio website with a Home page, an About page describing the person and their skills, a Services or Projects page, and a Contact page with replaceable placeholders."},
+      restaurant:{type:"Restaurant or café",prompt:"Create a polished restaurant website with separate Home, About, Menu or Services, and Contact pages. Include clearly labelled sample menu items but do not invent a real address or phone number."},
+      school:{type:"School website",prompt:"Create a professional school website with separate Home, About, Academics or Services, and Contact pages. Include admissions information and placeholders, but do not invent real school facts or contacts."},
+      business:{type:"Business landing page",prompt:"Create a modern business website with separate Home, About, Services, and Contact pages. Use clearly marked placeholders for unavailable facts, claims and contact details."}
     };
     websiteForm.addEventListener("click",event=>{
       const button=event.target.closest("[data-website-preset]");
@@ -645,43 +711,29 @@ function renderWorkspace(info){
     });
     websiteForm.addEventListener("submit",async event=>{
       event.preventDefault();
-      const prompt=websitePrompt.value.trim();
-      if(!prompt)return;
-      websiteBuildButton.disabled=true;
-      websiteBuildButton.textContent="Building…";
-      showWebsiteProgress();
-      websiteResult.hidden=true;
+      const prompt=websitePrompt.value.trim();if(!prompt)return;
+      websiteBuildButton.disabled=true;websiteBuildButton.textContent="Building…";showWebsiteProgress();websiteResult.hidden=true;
       try{
-        let response;
-        try{
-          response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,siteType:websiteType.value,designStyle:websiteStyle.value})});
-        }catch(networkError){
-          throw new Error("Could not reach the website-generation service. Check your connection and try again. ("+(networkError?.message||"Network error")+")");
-        }
-        const rawResponse=await response.text();
-        let data={};
-        try{data=JSON.parse(rawResponse)||{};}catch{}
-        if(!response.ok){
-          if(data.error)throw new Error(data.error);
-          if(response.status===524||response.status===504)throw new Error("Cloudflare timed out while generating the website. Try a shorter description.");
-          throw new Error("The website service returned HTTP "+response.status+". The server did not provide a readable error message.");
-        }
-        if(typeof data.html!=="string"||!data.html.toLowerCase().includes("</html>")){
-          throw new Error(data.error||"The AI service responded, but did not return a complete HTML website.");
-        }
-        websiteCode.value=data.html;
-        websiteResult.hidden=false;
-        websiteStatus.textContent="Your website is ready. Preview it, edit its code or download the HTML file.";
-        loadWebsitePreview(data.html,data.model||"Generated website");
-      }catch(error){
-        setWebsiteError(error.message||"Website generation failed. Please try again.");
-      }finally{
-        websiteBuildButton.disabled=false;
-        websiteBuildButton.textContent="Build website";
-      }
+        const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,siteType:websiteType.value,designStyle:websiteStyle.value})});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"The website could not be generated.");
+        if(!Array.isArray(data.files)||data.files.length<4||!data.files.some(x=>x.name==="index.html"))throw new Error("The builder did not return all four website pages. Please build it again.");
+        websiteFiles=data.files.filter(x=>pageNames[x.name]&&typeof x.content==="string");
+        if(websiteFiles.length!==4)throw new Error("The website project is missing one or more pages.");
+        activePreviewFile="index.html";activeCodeFile="index.html";
+        websiteCodeFileSelect.replaceChildren();
+        websiteFiles.forEach(file=>{const option=document.createElement("option");option.value=file.name;option.textContent=file.name;websiteCodeFileSelect.appendChild(option);});
+        websiteResult.hidden=false;websiteStatus.textContent="Your four-page website is ready. Use the page buttons or the navigation inside the preview.";
+        loadWebsitePreview("index.html",data.model||"Multi-page website ready");
+        loadCodeFile("index.html");
+      }catch(error){setWebsiteError(error.message||"Website generation failed. Please try again.");}
+      finally{websiteBuildButton.disabled=false;websiteBuildButton.textContent="Build website";}
     });
     websitePreviewTab.addEventListener("click",()=>setWebsiteView("preview"));
     websiteCodeTab.addEventListener("click",()=>setWebsiteView("code"));
+    document.querySelectorAll("[data-preview-page]").forEach(button=>button.addEventListener("click",()=>loadWebsitePreview(button.dataset.previewPage)));
+    websiteCodeFileSelect.addEventListener("change",()=>{saveCodeFile();loadCodeFile(websiteCodeFileSelect.value);});
+    websiteCode.addEventListener("input",saveCodeFile);
     document.getElementById("websiteDesktopView").addEventListener("click",()=>{
       websitePreview.classList.remove("website-mobile-frame");
       document.getElementById("websiteDesktopView").classList.add("active");
@@ -692,23 +744,26 @@ function renderWorkspace(info){
       document.getElementById("websiteMobileView").classList.add("active");
       document.getElementById("websiteDesktopView").classList.remove("active");
     });
-    document.getElementById("websiteRefreshPreview").addEventListener("click",updateWebsitePreview);
-    document.getElementById("websiteUpdatePreview").addEventListener("click",updateWebsitePreview);
+    document.getElementById("websiteRefreshPreview").addEventListener("click",()=>loadWebsitePreview(activePreviewFile,"Preview refreshed"));
+    document.getElementById("websiteUpdatePreview").addEventListener("click",()=>{
+      saveCodeFile();loadWebsitePreview(activeCodeFile,"Preview updated");
+    });
     document.getElementById("websiteCopyCode").addEventListener("click",async()=>{
-      try{await navigator.clipboard.writeText(websiteCode.value);showToast("Website code copied.");}
+      saveCodeFile();
+      try{await navigator.clipboard.writeText(websiteCode.value);showToast("Page code copied.");}
       catch{websiteCode.focus();websiteCode.select();showToast("Select the code and copy it.");}
     });
     document.getElementById("websiteDownload").addEventListener("click",()=>{
-      const blob=new Blob([websiteCode.value],{type:"text/html;charset=utf-8"});
+      saveCodeFile();
+      const blob=makeZip(websiteFiles);
       const url=URL.createObjectURL(blob);
-      const link=document.createElement("a");link.href=url;link.download="midcrush-website.html";
-      document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
+      const link=document.createElement("a");link.href=url;link.download="midcrush-website.zip";
+      document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     });
     document.getElementById("websiteBuildAnother").addEventListener("click",()=>{
-      websiteResult.hidden=true;websiteStatus.textContent="Describe another website to start a new project.";
-      websitePrompt.focus();
+      websiteResult.hidden=true;websiteStatus.textContent="Describe another website to start a new project.";websitePrompt.focus();
     });
-    websitePreview.srcdoc = "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f1efff;color:#24213b;font-family:Arial,sans-serif;text-align:center;padding:24px;box-sizing:border-box}main{max-width:420px}h1{font-size:28px}p{line-height:1.6;color:#625d79}</style></head><body><main><h1>Your website preview</h1><p>Describe your idea above and select Build website. Your generated website will appear here.</p></main></body></html>";
+    websitePreview.srcdoc="<!doctype html><html><body style=\"margin:0;padding:40px;font:14px Arial;text-align:center;color:#333\"><h2>Your website preview</h2><p>Build a website to preview its pages here.</p></body></html>";
   }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
