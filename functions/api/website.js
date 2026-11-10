@@ -45,19 +45,6 @@ function extractHtml(value) {
   }
 
   if (!/<html\b/i.test(html) || !/<body\b/i.test(html)) return "";
-  const bodyMatch = html.match(/<body\\b[^>]*>([\\s\\S]*?)<\\/body\\s*>/i);
-  if (!bodyMatch) return "";
-  const bodyMarkup = bodyMatch[1];
-  const visibleText = bodyMarkup
-    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script\\s*>/gi, " ")
-    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style\\s*>/gi, " ")
-    .replace(/<!--([\\s\\S]*?)-->/g, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&(?:nbsp|#160);/gi, " ")
-    .replace(/\\s+/g, " ")
-    .trim();
-  const visibleElements = /<(img|svg|canvas|video|table|button|input|select|textarea)\\b/i.test(bodyMarkup);
-  if (visibleText.length < 8 && !visibleElements) return "";
   const policy = "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
   const securityMeta = '<meta http-equiv="Content-Security-Policy" content="' + policy + '"><meta name="referrer" content="no-referrer">';
   if (/<head\b[^>]*>/i.test(html)) {
