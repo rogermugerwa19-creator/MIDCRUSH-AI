@@ -586,10 +586,14 @@ function renderWorkspace(info){
       websitePreviewTab.setAttribute("aria-pressed",String(!isCode));
       websiteCodeTab.setAttribute("aria-pressed",String(isCode));
     }
-    function updateWebsitePreview(){
-      websitePreview.srcdoc=websiteCode.value;
-      websiteResultLabel.textContent="Preview updated";
+    function loadWebsitePreview(html,label){
       setWebsiteView("preview");
+      websiteResultLabel.textContent=label||"Loading preview…";
+      websitePreview.srcdoc="<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>body{margin:0;padding:28px;font:14px Arial,sans-serif;color:#333;background:#fff}main{max-width:560px;margin:10vh auto;text-align:center}p{color:#666;line-height:1.6}</style></head><body><main><h2>Loading your website preview…</h2><p>The generated page is being opened in the preview window.</p></main></body></html>";
+      requestAnimationFrame(()=>{websitePreview.srcdoc=html;websiteResultLabel.textContent=label||"Preview ready";});
+    }
+    function updateWebsitePreview(){
+      loadWebsitePreview(websiteCode.value,"Preview updated");
     }
     function showWebsiteProgress(){
       websiteStatus.replaceChildren();
@@ -632,11 +636,9 @@ function renderWorkspace(info){
         if(!response.ok)throw new Error(data.error||"The website could not be generated.");
         if(typeof data.html!=="string"||!data.html.toLowerCase().includes("</html>"))throw new Error("The AI returned incomplete website code. Try a simpler brief.");
         websiteCode.value=data.html;
-        websitePreview.srcdoc=data.html;
         websiteResult.hidden=false;
-        websiteResultLabel.textContent=data.model||"Generated website";
         websiteStatus.textContent="Your website is ready. Preview it, edit its code or download the HTML file.";
-        setWebsiteView("preview");
+        loadWebsitePreview(data.html,data.model||"Generated website");
       }catch(error){
         setWebsiteError(error.message||"Website generation failed. Please try again.");
       }finally{
