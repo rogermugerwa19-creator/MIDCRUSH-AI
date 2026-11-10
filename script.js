@@ -563,26 +563,26 @@ function renderWorkspace(info){
     regenerateImageButton.addEventListener("click",generateImage);
   }else if(info.kind==="website"){
     target.innerHTML = "<div class=\"workspace-card website-builder-workspace\">\
-      <div class=\"website-builder-intro\"><div class=\"workspace-label\">Build a multi-page website with AI</div><p>Create a website with separate Home, About, Services and Contact pages. Preview each page, edit its HTML and download the complete website project.</p></div>\
+      <div class=\"website-builder-intro\"><div class=\"workspace-label\">Build a complete website with AI</div><p>Create your whole website in one HTML file. Home, About, Services and Contact are sections inside that same file, with navigation that moves between them.</p></div>\
       <form class=\"website-builder-form\" id=\"websiteBuilderForm\">\
         <label for=\"websitePrompt\">What kind of website should I build?</label>\
-        <textarea id=\"websitePrompt\" maxlength=\"2800\" rows=\"5\" required placeholder=\"Example: Create a modern website for a Ugandan photography studio. Include the studio story, photography services, sample packages as placeholders and contact information placeholders.\"></textarea>\
+        <textarea id=\"websitePrompt\" maxlength=\"2800\" rows=\"5\" required placeholder=\"Example: Create a modern website for a Ugandan photography studio. Include an introduction, about section, photography services, gallery placeholders and contact information placeholders.\"></textarea>\
         <div class=\"website-builder-options\">\
-          <div class=\"website-builder-field\"><label for=\"websiteType\">Website type</label><select id=\"websiteType\"><option>General website</option><option>Business landing page</option><option>Personal portfolio</option><option>Restaurant or café</option><option>School website</option><option>Product catalogue</option><option>Blog or magazine</option><option>Event website</option></select></div>\
+          <div class=\"website-builder-field\"><label for=\"websiteType\">Website type</label><select id=\"websiteType\"><option>General website</option><option>Business website</option><option>Personal portfolio</option><option>Restaurant or café</option><option>School website</option><option>Product catalogue</option><option>Blog or magazine</option><option>Event website</option></select></div>\
           <div class=\"website-builder-field\"><label for=\"websiteStyle\">Design style</label><select id=\"websiteStyle\"><option>Modern and polished</option><option>Minimal and clean</option><option>Bold and colourful</option><option>Elegant and premium</option><option>Dark and cinematic</option></select></div>\
         </div>\
         <div class=\"website-builder-examples\"><span>Quick starts</span><button type=\"button\" data-website-preset=\"portfolio\">Portfolio</button><button type=\"button\" data-website-preset=\"restaurant\">Restaurant</button><button type=\"button\" data-website-preset=\"school\">School</button><button type=\"button\" data-website-preset=\"business\">Business</button></div>\
-        <div class=\"website-builder-submit-row\"><button type=\"submit\" class=\"image-generate-button\" id=\"websiteBuildButton\">Build website</button><span>Creates four linked HTML pages</span></div>\
+        <div class=\"website-builder-submit-row\"><button type=\"submit\" class=\"image-generate-button\" id=\"websiteBuildButton\">Build website</button><span>One HTML file · in-page navigation</span></div>\
       </form>\
       <div class=\"website-builder-status\" id=\"websiteBuilderStatus\" role=\"status\" aria-live=\"polite\">Your website preview will appear here after generation.</div>\
       <section class=\"website-builder-result\" id=\"websiteBuilderResult\" hidden>\
-        <div class=\"website-result-toolbar\"><div class=\"website-result-title\"><strong>Your website project</strong><span id=\"websiteResultLabel\">Preview ready</span></div><div class=\"website-result-actions\"><button type=\"button\" class=\"chat-action\" id=\"websitePreviewTab\" aria-pressed=\"true\">Preview</button><button type=\"button\" class=\"chat-action\" id=\"websiteCodeTab\" aria-pressed=\"false\">Code</button><button type=\"button\" class=\"chat-action\" id=\"websiteDownload\">Download website ZIP</button></div></div>\
-        <div class=\"website-preview-tools\" id=\"websitePreviewTools\"><span>Open a page</span><div class=\"website-page-tabs\"><button type=\"button\" class=\"website-device-button active\" data-preview-page=\"index.html\">Home</button><button type=\"button\" class=\"website-device-button\" data-preview-page=\"about.html\">About</button><button type=\"button\" class=\"website-device-button\" data-preview-page=\"services.html\">Services</button><button type=\"button\" class=\"website-device-button\" data-preview-page=\"contact.html\">Contact</button><button type=\"button\" id=\"websiteDesktopView\" class=\"website-device-button active\">Desktop</button><button type=\"button\" id=\"websiteMobileView\" class=\"website-device-button\">Mobile</button><button type=\"button\" id=\"websiteRefreshPreview\" class=\"website-device-button\">Refresh</button></div></div>\
-        <div class=\"website-preview-panel\" id=\"websitePreviewPanel\"><iframe id=\"websitePreview\" title=\"Generated multi-page website preview\" sandbox=\"allow-scripts\" referrerpolicy=\"no-referrer\"></iframe></div>\
-        <div class=\"website-code-panel\" id=\"websiteCodePanel\" hidden><div class=\"website-code-file-row\"><label for=\"websiteCodeFileSelect\">Edit page</label><select id=\"websiteCodeFileSelect\"><option value=\"index.html\">index.html</option></select></div><textarea id=\"websiteCode\" spellcheck=\"false\" aria-label=\"Generated website HTML code\"></textarea><div class=\"website-code-actions\"><button type=\"button\" class=\"chat-action\" id=\"websiteCopyCode\">Copy code</button><button type=\"button\" class=\"chat-action chat-image-create\" id=\"websiteUpdatePreview\">Update preview</button></div></div>\
-        <div class=\"website-result-footer\"><span>Download and extract the ZIP to keep all four pages linked together.</span><button type=\"button\" id=\"websiteBuildAnother\">Build another website</button></div>\
+        <div class=\"website-result-toolbar\"><div class=\"website-result-title\"><strong>Your website</strong><span id=\"websiteResultLabel\">Preview ready</span></div><div class=\"website-result-actions\"><button type=\"button\" class=\"chat-action\" id=\"websitePreviewTab\" aria-pressed=\"true\">Preview</button><button type=\"button\" class=\"chat-action\" id=\"websiteCodeTab\" aria-pressed=\"false\">Code</button><button type=\"button\" class=\"chat-action\" id=\"websiteDownload\">Download HTML</button></div></div>\
+        <div class=\"website-preview-tools\" id=\"websitePreviewTools\"><span>Preview</span><div><button type=\"button\" id=\"websiteDesktopView\" class=\"website-device-button active\">Desktop</button><button type=\"button\" id=\"websiteMobileView\" class=\"website-device-button\">Mobile</button><button type=\"button\" id=\"websiteRefreshPreview\" class=\"website-device-button\">Refresh</button></div></div>\
+        <div class=\"website-preview-panel\" id=\"websitePreviewPanel\"><iframe id=\"websitePreview\" title=\"Generated website preview\" sandbox=\"\" referrerpolicy=\"no-referrer\"></iframe></div>\
+        <div class=\"website-code-panel\" id=\"websiteCodePanel\" hidden><textarea id=\"websiteCode\" spellcheck=\"false\" aria-label=\"Generated website HTML code\"></textarea><div class=\"website-code-actions\"><button type=\"button\" class=\"chat-action\" id=\"websiteCopyCode\">Copy code</button><button type=\"button\" class=\"chat-action chat-image-create\" id=\"websiteUpdatePreview\">Update preview</button></div></div>\
+        <div class=\"website-result-footer\"><span>All website sections and navigation are contained in this one HTML file.</span><button type=\"button\" id=\"websiteBuildAnother\">Build another website</button></div>\
       </section>\
-      <p class=\"website-builder-note\">The ZIP contains separate HTML pages with working navigation. You can edit each page and add more pages later. Hosting and databases are not included automatically.</p>\
+      <p class=\"website-builder-note\">Download gives you one standalone HTML file. Navigation links move between sections in that file. Online hosting, databases and user accounts are not included automatically.</p>\
     </div>";
     const websiteForm=document.getElementById("websiteBuilderForm");
     const websitePrompt=document.getElementById("websitePrompt");
@@ -593,104 +593,41 @@ function renderWorkspace(info){
     const websiteResult=document.getElementById("websiteBuilderResult");
     const websitePreview=document.getElementById("websitePreview");
     const websiteCode=document.getElementById("websiteCode");
-    const websiteCodeFileSelect=document.getElementById("websiteCodeFileSelect");
     const websitePreviewPanel=document.getElementById("websitePreviewPanel");
     const websiteCodePanel=document.getElementById("websiteCodePanel");
     const websitePreviewTools=document.getElementById("websitePreviewTools");
     const websitePreviewTab=document.getElementById("websitePreviewTab");
     const websiteCodeTab=document.getElementById("websiteCodeTab");
     const websiteResultLabel=document.getElementById("websiteResultLabel");
-    let websiteFiles=[];
-    let activePreviewFile="index.html";
-    let activeCodeFile="index.html";
-    const pageNames={"index.html":"Home","about.html":"About","services.html":"Services","contact.html":"Contact"};
-    function getWebsiteFile(name){return websiteFiles.find(file=>file.name===name);}
-    function saveCodeFile(){const file=getWebsiteFile(activeCodeFile);if(file)file.content=websiteCode.value;}
+    let currentWebsiteHtml="";
+    let currentPreviewUrl="";
     function setWebsiteView(view){
       const isCode=view==="code";
-      if(!isCode)saveCodeFile();
       websitePreviewPanel.hidden=isCode;
       websiteCodePanel.hidden=!isCode;
       websitePreviewTools.hidden=isCode;
       websitePreviewTab.setAttribute("aria-pressed",String(!isCode));
       websiteCodeTab.setAttribute("aria-pressed",String(isCode));
-      if(isCode)loadCodeFile(activeCodeFile);
     }
-    function loadCodeFile(name){
-      const file=getWebsiteFile(name);
-      if(!file)return;
-      activeCodeFile=name;
-      websiteCodeFileSelect.value=name;
-      websiteCode.value=file.content;
-    }
-    function cleanPreviewHtml(html){
-      return String(html||"")
-        .replace(/<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi,"")
-        .replace(/<meta\s+name=["']referrer["'][^>]*>/gi,"");
-    }
-    function loadWebsitePreview(name,label){
-      const file=getWebsiteFile(name);
-      if(!file)return;
-      activePreviewFile=name;
+    function loadWebsitePreview(html,label){
+      currentWebsiteHtml=String(html||"");
       setWebsiteView("preview");
-      websiteResultLabel.textContent=label||("Preview: "+pageNames[name]);
-      document.querySelectorAll("[data-preview-page]").forEach(button=>button.classList.toggle("active",button.dataset.previewPage===name));
-      const navBridge="<script>(function(){document.addEventListener('click',function(event){const link=event.target.closest('a[href]');if(!link)return;const target=link.getAttribute('href').split(/[?#]/)[0].split('/').pop();if(['index.html','about.html','services.html','contact.html'].includes(target)){event.preventDefault();parent.postMessage({type:'midcrush-preview-page',file:target},'*');}});})();</scr"+"ipt>";
-      let html=cleanPreviewHtml(file.content);
-      const close=html.toLowerCase().lastIndexOf("</body>");
-      html=close>=0?html.slice(0,close)+navBridge+html.slice(close):html+navBridge;
-      websitePreview.srcdoc="";
-      requestAnimationFrame(()=>{websitePreview.srcdoc=html;});
-    }
-    window.addEventListener("message",event=>{
-      if(event.source!==websitePreview.contentWindow)return;
-      if(event.data?.type!=="midcrush-preview-page"||!pageNames[event.data.file])return;
-      loadWebsitePreview(event.data.file);
-    });
-    function makeZip(files){
-      const encoder=new TextEncoder();
-      const chunks=[],central=[];
-      const crc32=bytes=>{
-        let crc=0xffffffff;
-        for(const byte of bytes){crc^=byte;for(let k=0;k<8;k++)crc=(crc>>>1)^((crc&1)?0xedb88320:0);}
-        return (crc^0xffffffff)>>>0;
-      };
-      let offset=0;
-      for(const file of files){
-        const name=encoder.encode(file.name);
-        const data=encoder.encode(file.content);
-        const crc=crc32(data);
-        const local=new Uint8Array(30+name.length);
-        const lv=new DataView(local.buffer);
-        lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(6,0x0800,true);
-        lv.setUint16(8,0,true);lv.setUint16(10,0,true);lv.setUint16(12,0x21,true);
-        lv.setUint32(14,crc,true);lv.setUint32(18,data.length,true);lv.setUint32(22,data.length,true);
-        lv.setUint16(26,name.length,true);lv.setUint16(28,0,true);local.set(name,30);
-        chunks.push(local,data);
-        const cent=new Uint8Array(46+name.length);
-        const cv=new DataView(cent.buffer);
-        cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);
-        cv.setUint16(8,0x0800,true);cv.setUint16(10,0,true);cv.setUint16(12,0,true);cv.setUint16(14,0x21,true);
-        cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);
-        cv.setUint16(28,name.length,true);cv.setUint16(30,0,true);cv.setUint16(32,0,true);
-        cv.setUint16(34,0,true);cv.setUint16(36,0,true);cv.setUint32(38,0,true);
-        cv.setUint32(42,offset,true);cent.set(name,46);central.push(cent);
-        offset+=local.length+data.length;
-      }
-      const centralSize=central.reduce((sum,x)=>sum+x.length,0);
-      const end=new Uint8Array(22);const ev=new DataView(end.buffer);
-      ev.setUint32(0,0x06054b50,true);ev.setUint16(4,0,true);ev.setUint16(6,0,true);
-      ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);
-      ev.setUint32(12,centralSize,true);ev.setUint32(16,offset,true);ev.setUint16(20,0,true);
-      return new Blob([...chunks,...central,end],{type:"application/zip"});
+      websiteResultLabel.textContent=label||"Loading website preview…";
+      if(currentPreviewUrl){URL.revokeObjectURL(currentPreviewUrl);currentPreviewUrl="";}
+      const blob=new Blob([currentWebsiteHtml],{type:"text/html;charset=utf-8"});
+      currentPreviewUrl=URL.createObjectURL(blob);
+      websitePreview.onload=()=>{websiteResultLabel.textContent=label||"Preview loaded";};
+      websitePreview.onerror=()=>{websiteResultLabel.textContent="Preview failed to load";setWebsiteError("The HTML was generated, but the browser could not load it in the preview frame.");};
+      websitePreview.src="about:blank";
+      requestAnimationFrame(()=>{websitePreview.src=currentPreviewUrl;});
     }
     function showWebsiteProgress(){
       websiteStatus.replaceChildren();
       const title=document.createElement("strong");title.textContent="Building your website";
-      const detail=document.createElement("span");detail.className="generation-progress-detail";detail.textContent="Creating page content and linking the four pages.";
+      const detail=document.createElement("span");detail.className="generation-progress-detail";detail.textContent="Creating the content and arranging all sections in one HTML file.";
       const track=document.createElement("div");track.className="generation-progress-track";track.setAttribute("role","progressbar");track.setAttribute("aria-label","Website generation in progress");track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");track.setAttribute("aria-valuetext","In progress; live percentage is not available");
       const bar=document.createElement("span");track.appendChild(bar);
-      const note=document.createElement("small");note.textContent="Generating website pages… Keep this page open.";
+      const note=document.createElement("small");note.textContent="Generating your website… Keep this page open.";
       websiteStatus.append(title,detail,track,note);
     }
     function setWebsiteError(message){
@@ -698,10 +635,10 @@ function renderWorkspace(info){
       const error=document.createElement("span");error.className="website-error";error.textContent=message;websiteStatus.appendChild(error);
     }
     const presets={
-      portfolio:{type:"Personal portfolio",prompt:"Create a modern personal portfolio website with a Home page, an About page describing the person and their skills, a Services or Projects page, and a Contact page with replaceable placeholders."},
-      restaurant:{type:"Restaurant or café",prompt:"Create a polished restaurant website with separate Home, About, Menu or Services, and Contact pages. Include clearly labelled sample menu items but do not invent a real address or phone number."},
-      school:{type:"School website",prompt:"Create a professional school website with separate Home, About, Academics or Services, and Contact pages. Include admissions information and placeholders, but do not invent real school facts or contacts."},
-      business:{type:"Business landing page",prompt:"Create a modern business website with separate Home, About, Services, and Contact pages. Use clearly marked placeholders for unavailable facts, claims and contact details."}
+      portfolio:{type:"Personal portfolio",prompt:"Create a complete personal portfolio website in one HTML file. Include Home, About, Projects or Services, and Contact sections, with navigation links that move between sections in the same file."},
+      restaurant:{type:"Restaurant or café",prompt:"Create a complete restaurant website in one HTML file. Include Home, About, Menu, and Contact sections. Use clearly labelled sample menu text and placeholders. Navigation must move between sections in the same file."},
+      school:{type:"School website",prompt:"Create a complete school website in one HTML file. Include Home, About, Academics, Admissions, and Contact sections. Use placeholders for facts not provided. Navigation must move between sections in the same file."},
+      business:{type:"Business website",prompt:"Create a complete business website in one HTML file. Include Home, About, Services, and Contact sections, with working in-page navigation links. Use placeholders for information not provided."}
     };
     websiteForm.addEventListener("click",event=>{
       const button=event.target.closest("[data-website-preset]");
@@ -717,23 +654,19 @@ function renderWorkspace(info){
         const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,siteType:websiteType.value,designStyle:websiteStyle.value})});
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"The website could not be generated.");
-        if(!Array.isArray(data.files)||data.files.length<4||!data.files.some(x=>x.name==="index.html"))throw new Error("The builder did not return all four website pages. Please build it again.");
-        websiteFiles=data.files.filter(x=>pageNames[x.name]&&typeof x.content==="string");
-        if(websiteFiles.length!==4)throw new Error("The website project is missing one or more pages.");
-        activePreviewFile="index.html";activeCodeFile="index.html";
-        websiteCodeFileSelect.replaceChildren();
-        websiteFiles.forEach(file=>{const option=document.createElement("option");option.value=file.name;option.textContent=file.name;websiteCodeFileSelect.appendChild(option);});
-        websiteResult.hidden=false;websiteStatus.textContent="Your four-page website is ready. Use the page buttons or the navigation inside the preview.";
-        loadCodeFile("index.html");
-        loadWebsitePreview("index.html",data.model||"Multi-page website ready");
+        if(typeof data.html!=="string"||!data.html.includes("</html>"))throw new Error("The builder did not return a complete HTML file. Please try again.");
+        if(!data.html.includes('id="home"')||!data.html.includes('id="about"')||!data.html.includes('id="services"')||!data.html.includes('id="contact"')){
+          throw new Error("The generated website is missing one or more sections. Please build it again.");
+        }
+        websiteCode.value=data.html;
+        websiteResult.hidden=false;
+        websiteStatus.textContent="Your complete one-file website is ready. Use the navigation inside the preview to move between sections.";
+        loadWebsitePreview(data.html,"Single HTML website");
       }catch(error){setWebsiteError(error.message||"Website generation failed. Please try again.");}
       finally{websiteBuildButton.disabled=false;websiteBuildButton.textContent="Build website";}
     });
     websitePreviewTab.addEventListener("click",()=>setWebsiteView("preview"));
     websiteCodeTab.addEventListener("click",()=>setWebsiteView("code"));
-    document.querySelectorAll("[data-preview-page]").forEach(button=>button.addEventListener("click",()=>loadWebsitePreview(button.dataset.previewPage)));
-    websiteCodeFileSelect.addEventListener("change",()=>{saveCodeFile();loadCodeFile(websiteCodeFileSelect.value);});
-    websiteCode.addEventListener("input",saveCodeFile);
     document.getElementById("websiteDesktopView").addEventListener("click",()=>{
       websitePreview.classList.remove("website-mobile-frame");
       document.getElementById("websiteDesktopView").classList.add("active");
@@ -744,26 +677,22 @@ function renderWorkspace(info){
       document.getElementById("websiteMobileView").classList.add("active");
       document.getElementById("websiteDesktopView").classList.remove("active");
     });
-    document.getElementById("websiteRefreshPreview").addEventListener("click",()=>loadWebsitePreview(activePreviewFile,"Preview refreshed"));
-    document.getElementById("websiteUpdatePreview").addEventListener("click",()=>{
-      saveCodeFile();loadWebsitePreview(activeCodeFile,"Preview updated");
-    });
+    document.getElementById("websiteRefreshPreview").addEventListener("click",()=>loadWebsitePreview(websiteCode.value,"Preview refreshed"));
+    document.getElementById("websiteUpdatePreview").addEventListener("click",()=>loadWebsitePreview(websiteCode.value,"Preview updated"));
     document.getElementById("websiteCopyCode").addEventListener("click",async()=>{
-      saveCodeFile();
-      try{await navigator.clipboard.writeText(websiteCode.value);showToast("Page code copied.");}
+      try{await navigator.clipboard.writeText(websiteCode.value);showToast("HTML code copied.");}
       catch{websiteCode.focus();websiteCode.select();showToast("Select the code and copy it.");}
     });
     document.getElementById("websiteDownload").addEventListener("click",()=>{
-      saveCodeFile();
-      const blob=makeZip(websiteFiles);
+      const blob=new Blob([websiteCode.value],{type:"text/html;charset=utf-8"});
       const url=URL.createObjectURL(blob);
-      const link=document.createElement("a");link.href=url;link.download="midcrush-website.zip";
+      const link=document.createElement("a");link.href=url;link.download="midcrush-website.html";
       document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
     });
     document.getElementById("websiteBuildAnother").addEventListener("click",()=>{
       websiteResult.hidden=true;websiteStatus.textContent="Describe another website to start a new project.";websitePrompt.focus();
     });
-    websitePreview.srcdoc="<!doctype html><html><body style=\"margin:0;padding:40px;font:14px Arial;text-align:center;color:#333\"><h2>Your website preview</h2><p>Build a website to preview its pages here.</p></body></html>";
+    websitePreview.src="about:blank";
   }else{
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
