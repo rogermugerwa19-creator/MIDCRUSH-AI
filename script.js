@@ -589,8 +589,27 @@ function renderWorkspace(info){
     function loadWebsitePreview(html,label){
       setWebsiteView("preview");
       websiteResultLabel.textContent=label||"Loading preview…";
-      websitePreview.srcdoc="<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>body{margin:0;padding:28px;font:14px Arial,sans-serif;color:#333;background:#fff}main{max-width:560px;margin:10vh auto;text-align:center}p{color:#666;line-height:1.6}</style></head><body><main><h2>Loading your website preview…</h2><p>The generated page is being opened in the preview window.</p></main></body></html>";
-      requestAnimationFrame(()=>{websitePreview.srcdoc=html;websiteResultLabel.textContent=label||"Preview ready";});
+      const diagnosticScript=[
+        "<script>(()=>{",
+        "const diagnose=()=>{",
+        "const body=document.body;if(!body)return;",
+        "const text=(body.innerText||body.textContent||'').replace(/\\s+/g,' ').trim();",
+        "const visual=body.querySelector('img,svg,canvas,video,table,button,input,select,textarea');",
+        "const style=getComputedStyle(body);",
+        "const hidden=style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0;",
+        "if((text.length<8&&!visual)||hidden){",
+        "document.documentElement.removeAttribute('hidden');body.removeAttribute('hidden');",
+        "body.style.cssText='display:block!important;visibility:visible!important;opacity:1!important;min-height:100vh!important;margin:0!important;padding:26px!important;box-sizing:border-box!important;background:#f7f7fb!important;color:#222!important;font:15px/1.6 Arial,sans-serif!important';",
+        "body.innerHTML=\"<main style='max-width:620px;margin:8vh auto;padding:28px;border:1px solid #dedbea;border-radius:16px;background:white;color:#24213b;box-shadow:0 12px 40px #17132b12'><h2 style='margin:0 0 12px'>The preview is blank</h2><p style='margin:0 0 12px'>The AI returned a page, but this preview could not find visible website content.</p><p style='margin:0'>Open the <b>Code</b> tab to inspect the HTML, then try <b>Update preview</b>. If the code is also nearly empty, generate the site again with a shorter description.</p></main>\";",
+        "}",
+        "};",
+        "window.addEventListener('load',()=>setTimeout(diagnose,1200));",
+        "setTimeout(diagnose,2500);",
+        "})();</script>"
+      ].join("");
+      const source=String(html||"").replace(/<\\/body\\s*>/i,diagnosticScript+"</body>");
+      websitePreview.srcdoc="<!doctype html><html><head><meta charset=\\"utf-8\\"><meta name=\\"viewport\\" content=\\"width=device-width,initial-scale=1\\"><style>body{margin:0;padding:28px;font:14px Arial,sans-serif;color:#333;background:#fff}main{max-width:560px;margin:10vh auto;text-align:center}p{color:#666;line-height:1.6}</style></head><body><main><h2>Loading your website preview…</h2><p>The generated page is being opened in the preview window.</p></main></body></html>";
+      requestAnimationFrame(()=>{websitePreview.srcdoc=source;websiteResultLabel.textContent=label||"Preview ready";});
     }
     function updateWebsitePreview(){
       loadWebsitePreview(websiteCode.value,"Preview updated");
