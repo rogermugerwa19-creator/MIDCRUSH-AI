@@ -20,14 +20,31 @@ function getText(result) {
 
 function extractHtml(value) {
   let html = String(value || "").trim();
-  const fenced = html.match(/```(?:html)?\s*([\s\S]*?)```/i);
+  const fenced = html.match(new RegExp("\\x60{3}(?:html)?\\s*([\\s\\S]*?)\\x60{3}", "i"));
   if (fenced) html = fenced[1].trim();
 
-  const start = html.search(/<!doctype\s+html|<html\b/i);
-  const end = html.toLowerCase().lastIndexOf("</html>");
-  if (start < 0 || end < 0 || end < start) return "";
-  html = html.slice(start, end + 7).trim();
+  const doctypeAt = html.search(/<!doctype\s+html/i);
+  const htmlAt = html.search(/<html\b/i);
+  const start = doctypeAt >= 0 ? doctypeAt : htmlAt;
 
+  if (start >= 0) {
+    html = html.slice(start).trim();
+    const end = html.toLowerCase().lastIndexOf("</html>");
+    if (end >= 0) {
+      html = html.slice(0, end + 7).trim();
+    } else if (/<body\b/i.test(html) && html.length > 1200) {
+      if (!/<\/body\s*>/i.test(html)) html += "\n</body>";
+      html += "\n</html>";
+    } else {
+      return "";
+    }
+  } else if (/<(main|header|nav|section|article|div)\b/i.test(html) && html.length > 500) {
+    html = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Generated website</title><style>body{margin:0;font-family:Arial,sans-serif}*{box-sizing:border-box}</style></head><body>" + html + "</body></html>";
+  } else {
+    return "";
+  }
+
+  if (!/<html\b/i.test(html) || !/<body\b/i.test(html)) return "";
   const policy = "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
   const securityMeta = '<meta http-equiv="Content-Security-Policy" content="' + policy + '"><meta name="referrer" content="no-referrer">';
   if (/<head\b[^>]*>/i.test(html)) {
@@ -38,7 +55,7 @@ function extractHtml(value) {
   return html;
 }
 
-const SYSTEM_PROMPT = "You are the MIDCRUSH AI Website Builder. Turn the user's brief into a complete, polished, responsive website as ONE self-contained HTML document. Return ONLY the HTML document, starting with <!doctype html> and ending with </html>. Do not use Markdown fences, explanations or notes outside the HTML. Use semantic HTML, accessible labels, responsive CSS, attractive typography, thoughtful spacing, and a cohesive colour palette. Write real page copy that fits the user's brief; do not use lorem ipsum. Put all CSS inside one <style> element and all JavaScript inside one inline <script> element. Do not load external scripts, libraries, CSS files, fonts or iframes. Do not use network requests, fetch, XMLHttpRequest, WebSockets, analytics, cookies, storage, eval, or Function. Do not include payment processing, account/password collection, sensitive-data collection, or real backend claims. Forms must be front-end demos only and must not submit data; show a clear demo success message locally if suitable. Do not invent business addresses, phone numbers, testimonials, prices, awards, or factual claims. Use placeholders such as [Add your phone number] when the brief does not provide real details. Use CSS shapes, gradients, and simple inline SVG for decorative visuals. Do not depend on external image URLs. Make buttons and navigation work within the page. Ensure the mobile menu works if one is included. Include helpful hover and focus states. Keep the generated source reasonably compact and make sure all tags and braces are closed.";
+const SYSTEM_PROMPT = "You are the MIDCRUSH AI Website Builder. Turn the user's brief into a complete, polished, responsive website as ONE self-contained HTML document. Return ONLY one complete HTML document, starting with <!doctype html> and ending with </html>. Never use Markdown fences or explanations. Keep code concise enough to finish in the token budget. Build a single-page landing website with a hero, navigation, up to four relevant content sections and a footer. Avoid unnecessary repeated cards, long copy or oversized scripts. Use semantic HTML, accessible labels, responsive CSS, attractive typography, thoughtful spacing, and a cohesive colour palette. Write real page copy that fits the user's brief; do not use lorem ipsum. Put all CSS inside one <style> element and all JavaScript inside one inline <script> element. Do not load external scripts, libraries, CSS files, fonts or iframes. Do not use network requests, fetch, XMLHttpRequest, WebSockets, analytics, cookies, storage, eval, or Function. Do not include payment processing, account/password collection, sensitive-data collection, or real backend claims. Forms must be front-end demos only and must not submit data; show a clear demo success message locally if suitable. Do not invent business addresses, phone numbers, testimonials, prices, awards, or factual claims. Use placeholders such as [Add your phone number] when the brief does not provide real details. Use CSS shapes, gradients, and simple inline SVG for decorative visuals. Do not depend on external image URLs. Make buttons and navigation work within the page. Ensure the mobile menu works if one is included. Include helpful hover and focus states. Keep the generated source reasonably compact and make sure all tags and braces are closed.";
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -67,15 +84,20 @@ export async function onRequestPost({ request, env }) {
           content: "Website type: " + siteType + "\nDesign direction: " + designStyle + "\n\nBuild this website:\n" + prompt
         }
       ],
-      max_completion_tokens: 4800,
-      temperature: 0.25
+      max_completion_tokens: 8000,
+      chat_template_kwargs: { enable_thinking: false },
+      temperature: 0.2
     });
 
     const generatedText = getText(result);
     const html = extractHtml(generatedText);
     if (!html) {
+      const finishReason = result?.choices?.[0]?.finish_reason || result?.choices?.[0]?.finishReason || "";
+      const hitLimit = /length|max_tokens/i.test(String(finishReason));
       return json({
-        error: "The AI did not return a complete website. Try a shorter or simpler description and generate again."
+        error: hitLimit
+          ? "The AI response reached its output limit before the website was complete. Try again; the builder now has a larger output allowance."
+          : "The AI response did not contain usable HTML. Try again with a shorter description."
       }, 502);
     }
     if (html.length > 70000) {
