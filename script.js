@@ -724,8 +724,8 @@ function renderWorkspace(info){
         websiteCodeFileSelect.replaceChildren();
         websiteFiles.forEach(file=>{const option=document.createElement("option");option.value=file.name;option.textContent=file.name;websiteCodeFileSelect.appendChild(option);});
         websiteResult.hidden=false;websiteStatus.textContent="Your four-page website is ready. Use the page buttons or the navigation inside the preview.";
-        loadWebsitePreview("index.html",data.model||"Multi-page website ready");
         loadCodeFile("index.html");
+        loadWebsitePreview("index.html",data.model||"Multi-page website ready");
       }catch(error){setWebsiteError(error.message||"Website generation failed. Please try again.");}
       finally{websiteBuildButton.disabled=false;websiteBuildButton.textContent="Build website";}
     });
