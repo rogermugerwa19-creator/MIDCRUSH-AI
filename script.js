@@ -610,7 +610,7 @@ function renderWorkspace(info){
       const source=String(html||"");
       const closeBody=source.toLowerCase().lastIndexOf("</body>");
       const previewSource=closeBody>=0?source.slice(0,closeBody)+diagnosticScript+source.slice(closeBody):source+diagnosticScript;
-      websitePreview.srcdoc="<!doctype html><html><head><meta charset=\\"utf-8\\"><meta name=\\"viewport\\" content=\\"width=device-width,initial-scale=1\\"><style>body{margin:0;padding:28px;font:14px Arial,sans-serif;color:#333;background:#fff}main{max-width:560px;margin:10vh auto;text-align:center}p{color:#666;line-height:1.6}</style></head><body><main><h2>Loading your website preview…</h2><p>The generated page is being opened in the preview window.</p></main></body></html>";
+      websitePreview.srcdoc="<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>body{margin:0;padding:28px;font:14px Arial,sans-serif;color:#333;background:#fff}main{max-width:560px;margin:10vh auto;text-align:center}p{color:#666;line-height:1.6}</style></head><body><main><h2>Loading your website preview…</h2><p>The generated page is being opened in the preview window.</p></main></body></html>";
       requestAnimationFrame(()=>{websitePreview.srcdoc=previewSource;websiteResultLabel.textContent=label||"Preview ready";});
     }
     function updateWebsitePreview(){
