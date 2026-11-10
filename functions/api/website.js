@@ -21,7 +21,7 @@ function clean(value,fallback,max=300){
 function esc(value){
   return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-function normalize(raw,prompt){
+function normalize(raw,prompt,fallbackStyle){
   const x=raw&&typeof raw==="object"?raw:{};
   let source=Array.isArray(x.navigation)?x.navigation:Array.isArray(x.sections)?x.sections:Array.isArray(x.pages)?x.pages:[];
   source=source.slice(0,6);
@@ -44,6 +44,7 @@ function normalize(raw,prompt){
   }
   return {
     title:clean(x.title||x.siteName,"Your website",65),
+    designStyle:clean(x.designStyle,fallbackStyle||"Modern and polished",60),
     eyebrow:clean(x.eyebrow,"WELCOME",45),
     tagline:clean(x.tagline||x.headline,clean(prompt,"Discover something new.",110),145),
     intro:clean(x.intro||x.description,"Explore the information and features on this website.",420),
@@ -70,25 +71,31 @@ function buildSinglePage(data,style){
   const title=esc(data.title);
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="'+esc(data.intro.slice(0,150))+'"><title>'+title+'</title><style>'+theme+css+'</style></head><body><header class="hero" id="home"><div class="wrap"><div class="topbar"><a class="brand" href="#home">'+title+'</a><nav class="nav" aria-label="Main navigation">'+nav+'</nav></div><div class="hero-inner"><span class="eyebrow">'+esc(data.eyebrow)+'</span><h1>'+esc(data.tagline)+'</h1><p>'+esc(data.intro)+'</p>'+(data.sections[0]?'<a class="button" href="#'+data.sections[0].id+'">Explore the website</a>':"")+'</div></div></header><main>'+sectionsHtml+'</main><footer class="footer"><div class="wrap">'+title+' · Built with MIDCRUSH AI</div></footer></body></html>';
 }
-const SYSTEM_PROMPT="Plan the navigation and write content for the website described by the user. Return ONLY valid compact JSON with fields title, eyebrow, tagline, intro, navigation. navigation must be an array of 2 to 6 objects. Each object has label (short navigation tab text), heading, intro, cards. cards is an array of 2 to 4 objects, each with title and text. Choose every navigation tab and its content to fit the exact website type and the user's brief. The sections should add useful detail beyond the Home area. DO NOT force About, Services, Contact, Pricing, or any standard business section into every website. Include Contact only when the user asks for it or it is genuinely appropriate. For a movie website, relevant tabs might be Movies, Categories, Series, VJs, Latest Uploads or similar; choose only the ones that fit the brief. For a school, use relevant areas such as Academics, Admissions, School Life. For a restaurant, use relevant areas such as Menu, Story, Gallery, Location when appropriate. These are examples, not fixed templates. A movie directory should not get business contact or service sections unless explicitly requested. Give useful, specific details and avoid repeating the same generic copy. Do not invent real contact details, prices, ratings, testimonials, awards, or factual claims; use clearly marked placeholders when needed. Do not use lorem ipsum. Keep the JSON concise and below 700 words. No Markdown, code, or explanations.";
+const SYSTEM_PROMPT="You are a conversational AI website builder. Create or revise a complete website from the user's brief. Return ONLY valid compact JSON with fields title, designStyle, eyebrow, tagline, intro, navigation. navigation must be an array of 2 to 6 objects. Each object has label (short navigation tab text), heading, intro, cards. cards is an array of 2 to 4 objects, each with title and text. Choose every navigation tab and its content to fit the exact website type and the user's brief. The navigation sections are detailed areas within ONE website, not separate HTML files. Do not force About, Services, Contact, Pricing, or any standard business section into every website. Include Contact only when requested or genuinely appropriate. For a movie website, relevant tabs might be Movies, Categories, Series, VJs, Latest Uploads or similar. For a school, use areas such as Academics, Admissions, School Life. For a restaurant, use Menu, Story, Gallery or Location when appropriate. These are examples, not fixed templates. Give useful, specific details. Do not invent real contact details, prices, ratings, testimonials, awards, or factual claims. Do not use lorem ipsum. designStyle must be one of: Modern and polished, Minimal and clean, Bold and colourful, Elegant and premium, Dark and cinematic. No Markdown, code, or explanations. Keep the JSON concise and below 700 words.";;
 export async function onRequestPost({request,env}){
   let body;try{body=await request.json();}catch{return json({error:"Please enter a website description."},400);}
   const prompt=typeof body.prompt==="string"?body.prompt.trim():"";
   const siteType=typeof body.siteType==="string"?body.siteType.slice(0,60):"Website";
-  const designStyle=typeof body.designStyle==="string"?body.designStyle.slice(0,60):"Modern";
+  const requestedStyle=typeof body.designStyle==="string"?body.designStyle.slice(0,60):"Modern and polished";
+  const isRevision=body.mode==="revise";
+  const currentSiteData=isRevision&&body.currentSiteData&&typeof body.currentSiteData==="object"?body.currentSiteData:null;
   if(!prompt)return json({error:"Describe the website you want to build."},400);
   if(prompt.length>2800)return json({error:"Keep your website description under 2,800 characters."},400);
+  if(isRevision&&!currentSiteData)return json({error:"The current website data is missing. Build the website again before requesting changes."},400);
   if(!env.AI)return json({error:"Website generation is not connected. Check the Workers AI binding in your Cloudflare Pages settings."},503);
   try{
+    const userBrief=isRevision
+      ? "Revise the current website according to the user's message.\nCurrent website data: "+JSON.stringify(currentSiteData)+"\nUser's requested change: "+prompt+"\nPreserve the existing title, sections, navigation and content that the user did not ask to change. Add or remove sections only when requested or clearly necessary. Keep the website type and purpose unchanged."
+      : "Website type: "+siteType+"\nDesign style: "+requestedStyle+"\nWebsite brief: "+prompt;
     const result=await env.AI.run("@cf/zai-org/glm-4.7-flash",{
-      messages:[{role:"system",content:SYSTEM_PROMPT},{role:"user",content:"Website type: "+siteType+"\nDesign style: "+designStyle+"\nWebsite brief: "+prompt}],
-      max_completion_tokens:1400,chat_template_kwargs:{enable_thinking:false},temperature:0.3
+      messages:[{role:"system",content:SYSTEM_PROMPT},{role:"user",content:userBrief}],
+      max_completion_tokens:1800,chat_template_kwargs:{enable_thinking:false},temperature:0.25
     });
     const raw=parseJson(readText(result));
-    if(!raw)return json({error:"The AI could not create a suitable website structure. Please try again."},502);
-    const data=normalize(raw,prompt);
-    const html=buildSinglePage(data,designStyle);
-    return json({html,model:"Cloudflare Workers AI · contextual single-file website"});
+    if(!raw)return json({error:"The AI could not update the website structure. Please try again."},502);
+    const data=normalize(raw,prompt,requestedStyle);
+    const html=buildSinglePage(data,data.designStyle);
+    return json({html,siteData:data,model:isRevision?"Website updated":"Cloudflare Workers AI · conversational single-file website builder"});
   }catch(error){
     const message=String(error?.message||error||"Unknown error");
     console.error("MIDCRUSH website generation error:",message);
