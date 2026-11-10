@@ -1,144 +1,99 @@
-const HEADERS = {
-  "Content-Type": "application/json; charset=utf-8",
-  "Cache-Control": "no-store"
-};
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: HEADERS });
-}
-
+const HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
+function json(data, status = 200) { return new Response(JSON.stringify(data), { status, headers: HEADERS }); }
 function getText(result) {
   const content = result?.choices?.[0]?.message?.content;
   if (typeof content === "string") return content.trim();
-  if (Array.isArray(content)) {
-    return content.map(part => typeof part?.text === "string" ? part.text : "").join("").trim();
-  }
+  if (Array.isArray(content)) return content.map(part => typeof part?.text === "string" ? part.text : "").join("").trim();
   if (typeof result?.response === "string") return result.response.trim();
   if (typeof result?.output_text === "string") return result.output_text.trim();
   return "";
 }
-
-function extractHtml(value) {
-  let html = String(value || "").trim();
-  const fenced = html.match(new RegExp("\\x60{3}(?:html)?\\s*([\\s\\S]*?)\\x60{3}", "i"));
-  if (fenced) html = fenced[1].trim();
-
-  const doctypeAt = html.search(/<!doctype\s+html/i);
-  const htmlAt = html.search(/<html\b/i);
-  const start = doctypeAt >= 0 ? doctypeAt : htmlAt;
-
-  if (start >= 0) {
-    html = html.slice(start).trim();
-    const end = html.toLowerCase().lastIndexOf("</html>");
-    if (end >= 0) {
-      html = html.slice(0, end + 7).trim();
-    } else if (/<body\b/i.test(html) && html.length > 1200) {
-      if (!/<\/body\s*>/i.test(html)) html += "\n</body>";
-      html += "\n</html>";
-    } else {
-      return "";
-    }
-  } else if (/<(main|header|nav|section|article|div)\b/i.test(html) && html.length > 500) {
-    html = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Generated website</title><style>body{margin:0;font-family:Arial,sans-serif}*{box-sizing:border-box}</style></head><body>" + html + "</body></html>";
-  } else {
-    return "";
-  }
-
-  if (!/<html\b/i.test(html) || !/<body\b/i.test(html)) return "";
-  const policy = "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
-  const securityMeta = '<meta http-equiv="Content-Security-Policy" content="' + policy + '"><meta name="referrer" content="no-referrer">';
-  if (/<head\b[^>]*>/i.test(html)) {
-    html = html.replace(/<head\b[^>]*>/i, match => match + "\n" + securityMeta);
-  } else {
-    html = html.replace(/<html\b[^>]*>/i, match => match + "\n<head>" + securityMeta + "</head>");
-  }
-  return html;
+function parseContent(text) {
+  let value = String(text || "").trim().replace(/^\s*\x60{3}(?:json)?\s*/i, "").replace(/\s*\x60{3}\s*$/, "");
+  try { return JSON.parse(value); } catch {}
+  const first = value.indexOf("{"), last = value.lastIndexOf("}");
+  if (first >= 0 && last > first) { try { return JSON.parse(value.slice(first, last + 1)); } catch {} }
+  return null;
 }
-
-const SYSTEM_PROMPT = "You are the MIDCRUSH AI Website Builder. Turn the user's brief into a complete, polished, responsive website as ONE self-contained HTML document. Return ONLY one complete HTML document, starting with <!doctype html> and ending with </html>. Never use Markdown fences or explanations. Keep code concise enough to finish in the token budget. Build a single-page landing website with a hero, navigation, up to four relevant content sections and a footer. Avoid unnecessary repeated cards, long copy or oversized scripts. Use semantic HTML, accessible labels, responsive CSS, attractive typography, thoughtful spacing, and a cohesive colour palette. Write real page copy that fits the user's brief; do not use lorem ipsum. Put all CSS inside one <style> element and all JavaScript inside one inline <script> element. Do not load external scripts, libraries, CSS files, fonts or iframes. Do not use network requests, fetch, XMLHttpRequest, WebSockets, analytics, cookies, storage, eval, or Function. Do not include payment processing, account/password collection, sensitive-data collection, or real backend claims. Forms must be front-end demos only and must not submit data; show a clear demo success message locally if suitable. Do not invent business addresses, phone numbers, testimonials, prices, awards, or factual claims. Use placeholders such as [Add your phone number] when the brief does not provide real details. Use CSS shapes, gradients, and simple inline SVG for decorative visuals. Do not depend on external image URLs. Put all visible page content directly in the HTML body so the website displays even before JavaScript runs. Do not create a blank root element and depend on JavaScript, React, Vue, or an external app bundle to render the page. Do not use single-page-app mounting. JavaScript is optional and may only add small interactions to content that is already present in the HTML. Make buttons and navigation work within the page. Ensure the mobile menu works if one is included. Include helpful hover and focus states. Keep the generated source reasonably compact and make sure all tags and braces are closed.";
+function clean(value, fallback, max = 240) {
+  if (typeof value !== "string") return fallback;
+  const text = value.replace(/[\u0000-\u001f<>]/g, " ").replace(/\s+/g, " ").trim();
+  return text ? text.slice(0, max) : fallback;
+}
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[char]);
+}
+function normalizeContent(raw, prompt) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const sections = Array.isArray(source.sections) ? source.sections.slice(0, 3) : [];
+  return {
+    title: clean(source.title, "Your new website", 70),
+    eyebrow: clean(source.eyebrow, "WELCOME", 50),
+    tagline: clean(source.tagline, clean(prompt, "A place to discover something new.", 110), 150),
+    intro: clean(source.intro, "Explore what we offer and get in touch to learn more.", 380),
+    sections: sections.map((section, index) => ({
+      heading: clean(section?.heading, ["What we do", "Why choose us", "Discover more"][index], 90),
+      text: clean(section?.text, "Learn more about what makes this experience useful.", 360),
+      items: Array.isArray(section?.items) ? section.items.slice(0, 3).map(item => clean(item, "", 90)).filter(Boolean) : []
+    })),
+    ctaHeading: clean(source.ctaHeading, "Ready to get started?", 100),
+    ctaText: clean(source.ctaText, "Get in touch to find out more.", 260),
+    buttonText: clean(source.buttonText, "Contact us", 35)
+  };
+}
+function buildWebsite(data, designStyle) {
+  const style = String(designStyle || "").toLowerCase();
+  let theme = ":root{--bg:#f5f7fb;--surface:#fff;--text:#172033;--muted:#65718a;--accent:#315de8;--accent2:#7a55e8;--line:#e5eaf3;--hero:#101a35}";
+  if (/dark|cinematic/.test(style)) theme = ":root{--bg:#080d19;--surface:#111a2d;--text:#f3f5ff;--muted:#a6b0c5;--accent:#8d79ff;--accent2:#31c7d5;--line:#26334a;--hero:#090d1b}";
+  else if (/premium|elegant/.test(style)) theme = ":root{--bg:#f5f1e9;--surface:#fffdf8;--text:#252016;--muted:#766d5e;--accent:#9a7137;--accent2:#c49a5a;--line:#e8dfd0;--hero:#211d17}";
+  else if (/colour|color|bold/.test(style)) theme = ":root{--bg:#fff8f1;--surface:#fff;--text:#21152f;--muted:#6e607b;--accent:#ec5b38;--accent2:#6c54e8;--line:#f1dfd4;--hero:#2b174b}";
+  else if (/minimal|clean/.test(style)) theme = ":root{--bg:#f7f8f7;--surface:#fff;--text:#202a25;--muted:#68736c;--accent:#287a58;--accent2:#78a98e;--line:#e3e9e4;--hero:#18372c}";
+  const sectionHtml = data.sections.map((section, index) => {
+    const items = section.items.length ? "<ul>" + section.items.map(item => "<li>" + escapeHtml(item) + "</li>").join("") + "</ul>" : "";
+    return '<article class="card"><span class="number">0' + (index + 1) + '</span><h3>' + escapeHtml(section.heading) + '</h3><p>' + escapeHtml(section.text) + '</p>' + items + '</article>';
+  }).join("");
+  const safeTitle = escapeHtml(data.title);
+  const css = '*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}a{color:inherit;text-decoration:none}.wrap{width:min(1100px,calc(100% - 40px));margin:auto}.nav{height:78px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{font-weight:850;letter-spacing:-.04em;font-size:19px}.nav a:last-child{font-size:13px;font-weight:750;color:var(--accent)}.hero{background:var(--hero);color:#fff;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:500px;height:500px;right:-130px;top:-240px;border-radius:50%;background:radial-gradient(circle,var(--accent2),transparent 68%);opacity:.32}.hero-inner{position:relative;z-index:1;padding:88px 0 100px;max-width:780px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--accent2)}.hero .eyebrow{color:#c8c0ff}.hero h1{font-size:clamp(42px,7vw,76px);line-height:1.04;letter-spacing:-.055em;margin:17px 0 20px;max-width:760px}.hero p{max-width:650px;color:#d1d7e6;font-size:18px;line-height:1.75;margin:0 0 30px}.button{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:14px 22px;font-weight:800;font-size:13px;background:var(--accent);color:white}.button-light{background:#fff;color:#191c2a}.section{padding:76px 0}.section-head{max-width:690px;margin-bottom:28px}.section-head h2{font-size:clamp(28px,4vw,42px);line-height:1.13;letter-spacing:-.04em;margin:10px 0}.section-head p,.card p{color:var(--muted);margin:0}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:25px;min-height:210px;box-shadow:0 10px 28px #10182808}.number{color:var(--accent);font-size:11px;font-weight:850;letter-spacing:.14em}.card h3{font-size:19px;line-height:1.25;margin:19px 0 10px}.card ul{padding-left:18px;color:var(--muted);font-size:13px}.cta{margin:10px auto 76px;width:min(1100px,calc(100% - 40px));background:var(--hero);color:#fff;border-radius:22px;padding:42px;display:flex;align-items:center;justify-content:space-between;gap:24px}.cta h2{font-size:clamp(25px,4vw,38px);line-height:1.15;margin:8px 0}.cta p{color:#ccd2e0;max-width:580px;margin:0}.footer{padding:22px 0 35px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}@media(max-width:760px){.hero-inner{padding:65px 0 74px}.cards{grid-template-columns:1fr}.card{min-height:0}.cta{padding:29px;align-items:flex-start;flex-direction:column}.section{padding:58px 0}.nav{height:65px}}';
+  const cta = '<section class="cta" id="contact"><div><span class="eyebrow">NEXT STEP</span><h2>' + escapeHtml(data.ctaHeading) + '</h2><p>' + escapeHtml(data.ctaText) + '</p></div><a class="button button-light" href="#top">' + escapeHtml(data.buttonText) + '</a></section>';
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="' + escapeHtml(data.intro.slice(0, 155)) + '"><title>' + safeTitle + '</title><style>' + theme + css + '</style></head><body><header class="hero"><div class="wrap"><nav class="nav"><a class="brand" href="#top">' + safeTitle + '</a><a href="#contact">GET IN TOUCH ↗</a></nav><div class="hero-inner" id="top"><span class="eyebrow">' + escapeHtml(data.eyebrow) + '</span><h1>' + escapeHtml(data.tagline) + '</h1><p>' + escapeHtml(data.intro) + '</p><a class="button" href="#contact">' + escapeHtml(data.buttonText) + '</a></div></div></header><main><section class="section wrap"><div class="section-head"><span class="eyebrow">EXPLORE</span><h2>' + safeTitle + '</h2><p>' + escapeHtml(data.intro) + '</p></div><div class="cards">' + sectionHtml + '</div></section>' + cta + '</main><footer class="footer"><div class="wrap">' + safeTitle + ' · Website preview created with MIDCRUSH AI</div></footer></body></html>';
+}
+const SYSTEM_PROMPT = "Write short, specific website copy from the user's brief. Return ONLY valid compact JSON with fields title, eyebrow, tagline, intro, sections, ctaHeading, ctaText, buttonText. sections is exactly 3 objects with heading, text, and items (2 short strings each). Be relevant and natural. Do not invent real addresses, phone numbers, prices, testimonials, awards, staff, or factual claims. Use placeholders if needed. No Markdown or explanations. Keep JSON under 450 words.";
 
 export async function onRequestPost({ request, env }) {
   let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Please enter a website description." }, 400);
-  }
-
+  try { body = await request.json(); } catch { return json({ error: "Please enter a website description." }, 400); }
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
   const siteType = typeof body.siteType === "string" ? body.siteType.slice(0, 60) : "Website";
   const designStyle = typeof body.designStyle === "string" ? body.designStyle.slice(0, 60) : "Modern";
   if (!prompt) return json({ error: "Describe the website you want to build." }, 400);
   if (prompt.length > 2800) return json({ error: "Keep your website description under 2,800 characters." }, 400);
-
-  if (!env.AI) {
-    return json({ error: "Website generation is not connected. Check the Cloudflare Workers AI binding in your Pages settings." }, 503);
-  }
-
+  if (!env.AI) return json({ error: "Website generation is not connected. Check the Cloudflare Workers AI binding in your Pages settings." }, 503);
   try {
     const result = await env.AI.run("@cf/zai-org/glm-4.7-flash", {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: "Website type: " + siteType + "\nDesign direction: " + designStyle + "\n\nBuild this website:\n" + prompt
-        }
+        { role: "user", content: "Website type: " + siteType + "\nDesign style: " + designStyle + "\nBrief: " + prompt }
       ],
-      max_completion_tokens: 4000,
+      max_completion_tokens: 800,
       chat_template_kwargs: { enable_thinking: false },
-      temperature: 0.2
+      temperature: 0.25
     });
-
-    const generatedText = getText(result);
-    const html = extractHtml(generatedText);
-    if (!html) {
+    const parsed = parseContent(getText(result));
+    if (!parsed) {
       const finishReason = result?.choices?.[0]?.finish_reason || result?.choices?.[0]?.finishReason || "";
-      const hitLimit = /length|max_tokens/i.test(String(finishReason));
-      return json({
-        error: hitLimit
-          ? "The AI response reached its output limit before the website was complete. Try again; the builder now has a larger output allowance."
-          : "The AI response did not contain usable HTML. Try again with a shorter description."
-      }, 502);
+      if (/length|max_tokens/i.test(String(finishReason))) return json({ error: "The AI returned incomplete website content. Please try again." }, 502);
+      return json({ error: "The AI did not return website content in the expected format. Please try again." }, 502);
     }
-    if (html.length > 70000) {
-      return json({ error: "The generated website is too large. Try a shorter description." }, 502);
-    }
-
-    return json({ html, model: "Cloudflare Workers AI · GLM 4.7 Flash" });
+    const data = normalizeContent(parsed, prompt);
+    return json({ html: buildWebsite(data, designStyle), model: "Cloudflare Workers AI · GLM 4.7 Flash + MIDCRUSH layout" });
   } catch (error) {
     const message = String(error?.message || error || "Unknown error");
     console.error("MIDCRUSH website generation error:", message);
-    if (/3036|10,000 neurons|daily free allocation/i.test(message)) {
-      return json({ error: "The free daily Cloudflare AI allowance has been used up. It resets at 00:00 UTC." }, 429);
-    }
-    if (/3040|out of capacity|capacity/i.test(message)) {
-      return json({ error: "The AI service is busy right now. Try again shortly." }, 503);
-    }
-    if (/5007|3042|no such model|model.*not found|invalid model/i.test(message)) {
-      return json({ error: "Cloudflare could not find the configured website AI model. The model configuration needs to be corrected." }, 502);
-    }
-    if (/5035|workers paid plan/i.test(message)) {
-      return json({ error: "Cloudflare says this AI model requires a paid Workers plan, so this free setup cannot run it." }, 403);
-    }
-    if (/3007|3008|timeout|timed out|deadline/i.test(message)) {
-      return json({ error: "Cloudflare timed out while generating the website. Try a shorter description." }, 504);
-    }
-    if (/3006|request too large|payload too large/i.test(message)) {
-      return json({ error: "The website request is too large. Shorten the description and try again." }, 413);
-    }
-    if (/5016|model agreement/i.test(message)) {
-      return json({ error: "Cloudflare requires an account agreement before this AI model can be used." }, 403);
-    }
-    if (/3023|account blocked|account not allowed|5018|3041/i.test(message)) {
-      return json({ error: "Cloudflare is not allowing this account to use the selected AI model. Check the Workers AI account and model access." }, 403);
-    }
-    const safeMessage = message
-      .replace(/Bearer\s+[^\s]+/gi, "Bearer [hidden]")
-      .replace(/(?:api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "credential=[hidden]")
-      .replace(/[\r\n]+/g, " ")
-      .slice(0, 180);
-    return json({ error: safeMessage && safeMessage !== "Unknown error"
-      ? "Website generation error: " + safeMessage
-      : "Website generation failed for an unknown reason. Check the Cloudflare Pages function logs." }, 502);
+    if (/3036|10,000 neurons|daily free allocation/i.test(message)) return json({ error: "The free daily Cloudflare AI allowance has been used up. It resets at 00:00 UTC." }, 429);
+    if (/3040|out of capacity|capacity/i.test(message)) return json({ error: "The AI service is busy right now. Try again shortly." }, 503);
+    if (/3007|3008|timeout|timed out|deadline/i.test(message)) return json({ error: "Cloudflare timed out while generating the website. Try again with a brief description." }, 504);
+    if (/5035|workers paid plan/i.test(message)) return json({ error: "Cloudflare says this AI model requires a paid Workers plan, so this free setup cannot run it." }, 403);
+    if (/3042|no such model|model.*not found|invalid model/i.test(message)) return json({ error: "Cloudflare could not find the configured website AI model. The model configuration needs to be corrected." }, 502);
+    return json({ error: "Website generation failed. Please try again." }, 502);
   }
 }
