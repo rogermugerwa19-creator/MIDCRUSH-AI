@@ -563,10 +563,10 @@ function renderWorkspace(info){
     regenerateImageButton.addEventListener("click",generateImage);
   }else if(info.kind==="website"){
     target.innerHTML = "<div class=\"workspace-card website-builder-workspace\">\
-      <div class=\"website-builder-intro\"><div class=\"workspace-label\">Build a complete website with AI</div><p>Create your whole website in one HTML file. Home, About, Services and Contact are sections inside that same file, with navigation that moves between them.</p></div>\
+      <div class=\"website-builder-intro\"><div class=\"workspace-label\">Build a complete website with AI</div><p>Create your whole website in one HTML file with several detailed sections and navigation tabs. MIDCRUSH AI chooses the tabs to fit your description instead of automatically adding standard sections.</p></div>\
       <form class=\"website-builder-form\" id=\"websiteBuilderForm\">\
         <label for=\"websitePrompt\">What kind of website should I build?</label>\
-        <textarea id=\"websitePrompt\" maxlength=\"2800\" rows=\"5\" required placeholder=\"Example: Create a modern website for a Ugandan photography studio. Include an introduction, about section, photography services, gallery placeholders and contact information placeholders.\"></textarea>\
+        <textarea id=\"websitePrompt\" maxlength=\"2800\" rows=\"5\" required placeholder=\"Example: Create a movie website with movie collections, categories, VJ collections, series and latest uploads. Give each area useful details and its own navigation tab.\"></textarea>\
         <div class=\"website-builder-options\">\
           <div class=\"website-builder-field\"><label for=\"websiteType\">Website type</label><select id=\"websiteType\"><option>General website</option><option>Business website</option><option>Personal portfolio</option><option>Restaurant or café</option><option>School website</option><option>Product catalogue</option><option>Blog or magazine</option><option>Event website</option></select></div>\
           <div class=\"website-builder-field\"><label for=\"websiteStyle\">Design style</label><select id=\"websiteStyle\"><option>Modern and polished</option><option>Minimal and clean</option><option>Bold and colourful</option><option>Elegant and premium</option><option>Dark and cinematic</option></select></div>\
@@ -634,10 +634,10 @@ function renderWorkspace(info){
       const error=document.createElement("span");error.className="website-error";error.textContent=message;websiteStatus.appendChild(error);
     }
     const presets={
-      portfolio:{type:"Personal portfolio",prompt:"Create a complete personal portfolio website in one HTML file. Include Home, About, Projects or Services, and Contact sections, with navigation links that move between sections in the same file."},
-      restaurant:{type:"Restaurant or café",prompt:"Create a complete restaurant website in one HTML file. Include Home, About, Menu, and Contact sections. Use clearly labelled sample menu text and placeholders. Navigation must move between sections in the same file."},
-      school:{type:"School website",prompt:"Create a complete school website in one HTML file. Include Home, About, Academics, Admissions, and Contact sections. Use placeholders for facts not provided. Navigation must move between sections in the same file."},
-      business:{type:"Business website",prompt:"Create a complete business website in one HTML file. Include Home, About, Services, and Contact sections, with working in-page navigation links. Use placeholders for information not provided."}
+      portfolio:{type:"Personal portfolio",prompt:"Create a detailed personal portfolio website. Choose navigation tabs that suit a portfolio, such as selected work, skills, experience, process or achievements. Make each area useful and detailed. Include a contact area only if it suits the brief."},
+      restaurant:{type:"Restaurant or café",prompt:"Create a detailed restaurant website. Choose relevant navigation tabs such as menu, dishes, food gallery, our story, ordering information or location. Do not add unrelated business sections."},
+      school:{type:"School website",prompt:"Create a detailed school website. Choose useful navigation tabs such as academics, departments, admissions, school life, news, facilities or achievements. Include only areas that make sense for a school."},
+      business:{type:"Business website",prompt:"Create a detailed business website. Choose navigation tabs based on the actual business, such as products, services, projects, process, catalogue, FAQs or locations. Add contact information only when appropriate."}
     };
     websiteForm.addEventListener("click",event=>{
       const button=event.target.closest("[data-website-preset]");
