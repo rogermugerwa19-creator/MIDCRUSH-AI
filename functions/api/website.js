@@ -133,9 +133,9 @@ export async function onRequestPost({ request, env }) {
       return json({ error: "Cloudflare is not allowing this account to use the selected AI model. Check the Workers AI account and model access." }, 403);
     }
     const safeMessage = message
-      .replace(/Bearer\\s+[^\\s]+/gi, "Bearer [hidden]")
-      .replace(/(?:api[_-]?key|token|secret)\\s*[:=]\\s*[^\\s,;]+/gi, "$1=[hidden]")
-      .replace(/[\\r\\n]+/g, " ")
+      .replace(/Bearer\s+[^\s]+/gi, "Bearer [hidden]")
+      .replace(/(?:api[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, "credential=[hidden]")
+      .replace(/[\r\n]+/g, " ")
       .slice(0, 180);
     return json({ error: safeMessage && safeMessage !== "Unknown error"
       ? "Website generation error: " + safeMessage
