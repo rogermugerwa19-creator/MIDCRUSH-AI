@@ -407,17 +407,20 @@ function renderWorkspace(info){
     function isGeneralTopicMessage(value){
       const text=String(value||"").trim();
       if(!text)return false;
-      const topicChange=/^(new topic|change (the )?topic|switch (the )?topic|change subject|switch subject|switch to normal chat|back to normal chat|normal chat|talk about something else|another question|a different question|forget that|never mind|nevermind|cancel that|lets talk about|can we talk about|can we discuss|i want to ask about|i want to know about|i have another question|can i ask something else)\b/i.test(text);
+      const topicChange=/^(new topic|change (the )?topic|switch (the )?topic|change subject|switch subject|switch to normal chat|back to normal chat|normal chat|talk about something else|another question|a different question|forget that|never mind|nevermind|cancel that|lets talk about|lets discuss|can we talk about|can we discuss|by the way|anyway|on another note|unrelated question|random question|quick question|changing (the )?(subject|topic)|i have another question|can i ask something else|i was wondering about|i want to discuss|i want to talk about)\b/i.test(text);
       if(topicChange)return true;
-      if(isWebsiteRequest(text))return false;
-      const generalQuestion=/^(what|who|why|when|where|which|how|is|are|explain|teach|tell me|tell me about|help me with|can you explain|can you help me with|can we learn|i want to learn|i want to know|solve|calculate|write|draft|compose|summarize|summarise|translate|compare|define|describe|give me|tell a joke|tell me a joke)\b/i.test(text);
+      const explicitWebsiteWork=/\b(website|web site|webpage|web page|web app|web application|project|site|header|footer|navigation|navbar|section|layout|theme|button|menu)\b/i.test(text)&&/\b(add|build|create|make|design|develop|edit|change|fix|update|improve|remove|replace|include|modify)\b/i.test(text);
+      if(explicitWebsiteWork)return false;
+      const generalQuestion=/^(what|who|why|when|where|which|how|is|are|explain|teach|tell me|tell me about|help me with|can you explain|can you help me with|can we learn|i want to learn|i want to know|solve|calculate|write|draft|compose|summarize|summarise|translate|compare|define|describe|give me|tell a joke|tell me a joke|do you know|have you heard|what happened|who won|what about|how about)\b/i.test(text);
       const explicitImageCreation=isImageRequest(text)&&!generalQuestion;
       const explicitPhotoEdit=isPhotoEditRequest(text)&&!generalQuestion;
       if(explicitImageCreation||explicitPhotoEdit)return false;
-      const unrelatedSubjects=/\b(algebra|mathematics|maths?|stoichiometry|chemistry|physics|biology|photosynthesis|geography|history|literature|grammar|english homework|homework|schoolwork|programming|javascript|python|database|computer science|essay|poem|letter|email|recipe|weather|football|arsenal|free fire|economics|imports|exports|business studies|accounting|civics|politics|religion|science)\b/i.test(text);
-      return generalQuestion||unrelatedSubjects;
+      const arithmetic=/^\s*[-+]?\d+(?:\.\d+)?\s*[+*/×÷=-]\s*[-+]?\d+(?:\.\d+)?\s*(?:[=?])?\s*$/i.test(text);
+      const conversational=/\?\s*$/.test(text)||/^(hello|hi|hey|good morning|good afternoon|good evening|i think|i feel|i am bored|im bored|what do you think|any thoughts on|tell me something about|talk to me about|discuss)\b/i.test(text);
+      const unrelatedSubjects=/\b(algebra|mathematics|maths?|stoichiometry|chemistry|physics|biology|photosynthesis|geography|history|literature|grammar|english homework|homework|schoolwork|programming|javascript|python|database|computer science|essay|poem|letter|email|recipe|weather|football|soccer|arsenal|sports?|gaming|video games?|free fire|music|movies?|cartoons?|anime|entertainment|economics|imports|exports|business studies|accounting|civics|politics|religion|science|technology|uganda|world news|travel|cooking|food|animals?|space|astronomy)\b/i.test(text);
+      return generalQuestion||arithmetic||conversational||unrelatedSubjects;
     }
-        function cancelPendingVisualAction(){
+    function cancelPendingVisualAction(){
       if(pendingGeneration){pendingGeneration.waiting?.remove();pendingGeneration=null;}
       if(pendingEditCard){pendingEditCard.remove();pendingEditCard=null;}
       pendingEdit=null;
