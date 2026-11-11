@@ -63,16 +63,17 @@ export async function onRequestPost({request,env}){
   };
   try{
     const searchQueries=isUnebNews?[
-      query+" Uganda UNEB latest UACE examination news "+kampalaDate,
-      "UNEB 74 arrested 11 taken to court 2026 PLE examination malpractice "+kampalaDate,
-      "Uganda UNEB UACE examinations updates candidates latest "+new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Kampala",month:"long",year:"numeric"}).format(new Date())
+      query+" Uganda UNEB latest examination news "+kampalaDate,
+      "UNEB 74 arrested 11 taken to court 2026 PLE examination malpractice Radio Sapientia "+kampalaDate,
+      "Uganda UNEB UACE examinations candidates first written papers timetable latest "+kampalaDate,
+      "Uganda UNEB PLE malpractice arrests teachers charged public tip-offs November 2026"
     ]:[scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:query];
-    const responses=await Promise.all(searchQueries.map(searchQuery=>fetch("https://api.tavily.com/search",{
+    const responses=await Promise.all(searchQueries.map((searchQuery,queryIndex)=>fetch("https://api.tavily.com/search",{
       method:"POST",
       headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
       body:JSON.stringify({...baseRequest,query:searchQuery})
     })));
-    const payloads=await Promise.all(responses.map(async response=>({ok:response.ok,status:response.status,data:await response.json().catch(()=>({}))})));
+    const payloads=await Promise.all(responses.map(async (response,queryIndex)=>({queryIndex,ok:response.ok,status:response.status,data:await response.json().catch(()=>({}))})));
     const failed=payloads.find(item=>!item.ok);
     if(failed&&payloads.every(item=>!item.ok)){
       const detail=clean(failed.data?.detail?.error||failed.data?.error,220);
@@ -81,7 +82,7 @@ export async function onRequestPost({request,env}){
       return json({error:detail||"The internet search provider could not complete this request."},502);
     }
     const data={
-      results:payloads.flatMap(item=>Array.isArray(item.data.results)?item.data.results:[]),
+      results:payloads.flatMap(item=>Array.isArray(item.data.results)?item.data.results.map(result=>({...result,_queryIndex:item.queryIndex})):[]),
       images:payloads.flatMap(item=>Array.isArray(item.data.images)?item.data.images:[]),
       usage:{credits:payloads.reduce((sum,item)=>sum+(Number(item.data?.usage?.credits)||0),0)}
     };
@@ -93,7 +94,8 @@ export async function onRequestPost({request,env}){
         content:clean(raw,type==="news"?1800:900),
         score:Number.isFinite(item?.score)?item.score:null,
         publishedDate:clean(item?.published_date,40),
-        favicon:safeUrl(item?.favicon)
+        favicon:safeUrl(item?.favicon),
+        searchTrack:Number.isInteger(item?._queryIndex)?item._queryIndex:0
       };
     }).filter(item=>item.url);
     if(type==="news"){
@@ -143,7 +145,21 @@ export async function onRequestPost({request,env}){
         seenTitles.add(titleKey);
         unique.push(item);
       }
-      results.splice(0,results.length,...unique.slice(0,isUnebNews?12:10));
+      let selected=unique;
+      if(isUnebNews){
+        const tracks=[0,1,2,3].map(track=>unique.filter(item=>item.searchTrack===track));
+        const balanced=[];
+        for(let index=0;balanced.length<12;index++){
+          let added=false;
+          for(const track of tracks){
+            if(track[index]){balanced.push(track[index]);added=true;}
+            if(balanced.length>=12)break;
+          }
+          if(!added)break;
+        }
+        selected=balanced;
+      }
+      results.splice(0,results.length,...selected.slice(0,isUnebNews?12:10));
     }else{
       results.splice(8);
     }
