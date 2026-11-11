@@ -43,8 +43,9 @@ export async function onRequestPost({request,env}){
     docs:["developers.google.com","developer.mozilla.org","docs.github.com","learn.microsoft.com","developers.cloudflare.com"],
     tiktok:["tiktok.com"]
   };
+  const kampalaDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kampala",year:"numeric",month:"long",day:"numeric"}).format(new Date());
   const requestBody={
-    query:scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:(type==="news"&&/\b(uneb|uganda national examinations board)\b/i.test(query)?query+" Uganda National Examinations Board Uganda latest November 2026 updates":query),
+    query:scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:(type==="news"&&/\b(uneb|uganda national examinations board)\b/i.test(query)?query+" Uganda National Examinations Board Uganda latest updates "+kampalaDate:query),
     search_depth:type==="news"?"advanced":"basic",
     chunks_per_source:2,
     max_results:type==="news"?20:8,
