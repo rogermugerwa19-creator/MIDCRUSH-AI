@@ -347,3 +347,11 @@
   .internet-provider-grid{grid-template-columns:1fr}
   .internet-image-results{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Web citations inside AI Chat */
+.chat-web-sources{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:11px;padding-top:9px;border-top:1px solid #ffffff14}
+.chat-web-sources strong{flex-basis:100%;color:#9fe2e8;font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+.chat-web-sources a{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 8px;border:1px solid #3b4662;border-radius:7px;background:#121b2c;color:#c7d2ff;font-size:9px;text-decoration:none}
+.chat-web-sources a:hover{border-color:#8c80d5;color:#fff}
+.chat-web-note{display:block;margin-top:9px;color:#c4a4a4;font-size:9px;line-height:1.5}
