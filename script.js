@@ -357,7 +357,7 @@ function renderWorkspace(info){
               })).filter(item=>/^https?:\/\//i.test(item.url));
               webContext=[
                 researchData.type!=="news"&&researchData.answer?"Search provider summary: "+String(researchData.answer).slice(0,1800):"",
-                ...webSources.map((item,index)=>"Source ["+(index+1)+"]: "+item.title+"\nURL: "+item.url+"\nPublished: "+(item.publishedDate||"Date not provided")+"\nExtract: "+item.content)
+                ...webSources.map((item,index)=>"Source ["+(index+1)+"]: "+item.title+"\nURL: "+item.url+"\nSearch-provider publication-date metadata (not the event date; verify against article text): "+(item.publishedDate||"Date not provided")+"\nExtract: "+item.content)
               ].filter(Boolean).join("\n\n").slice(0,8000);
               if(!webSources.length)webNotice="The search provider did not return usable sources.";
             }
