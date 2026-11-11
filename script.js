@@ -344,7 +344,7 @@ function renderWorkspace(info){
             const researchResponse=await fetch("/api/research",{
               method:"POST",
               headers:{"Content-Type":"application/json"},
-              body:JSON.stringify({query:value,type:"web"})
+              body:JSON.stringify({query:value,type:/\b(latest|newest|recent|news|today|yesterday|this week|this month|current updates|breaking)\b/i.test(value)?"news":"web"})
             });
             const researchData=await researchResponse.json().catch(()=>({}));
             if(!researchResponse.ok)webNotice=researchData.error||"Web search is not available right now.";
