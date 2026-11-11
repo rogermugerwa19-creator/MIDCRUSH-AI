@@ -144,7 +144,8 @@ export async function onRequestPost({ request, env }) {
     return {
       title: typeof item.title === "string" ? item.title.slice(0, 180) : "Web source",
       url,
-      content: typeof item.content === "string" ? item.content.slice(0, 800) : ""
+      content: typeof item.content === "string" ? item.content.slice(0, 800) : "",
+      publishedDate: typeof item.publishedDate === "string" ? item.publishedDate.slice(0, 40) : ""
     };
   }).filter(Boolean) : [];
   let systemPrompt = image
