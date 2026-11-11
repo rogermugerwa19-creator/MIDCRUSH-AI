@@ -4,6 +4,7 @@ const toolInfo = {
   image:{title:"AI Image",kicker:"IMAGINE & CREATE",description:"Turn your imagination into original visual concepts.",icon:"image",kind:"image"},
   voice:{title:"AI Voice",kicker:"SOUND & SPEAK",description:"Explore voice generation and audio experiences.",icon:"audio-lines"},
   coding:{title:"AI Coding",kicker:"BUILD & DEVELOP",description:"Get help understanding, writing and improving code.",icon:"code-2"},
+  learn:{title:"Learn Programming",kicker:"LEARN & PRACTISE",description:"Learn programming languages step by step with lessons, exercises and code feedback.",icon:"graduation-cap",kind:"learn"},
   documents:{title:"Documents",kicker:"PLAN & ORGANISE",description:"Create and refine letters, reports, notes and more.",icon:"file-text"},
   music:{title:"AI Music",kicker:"CREATE YOUR SOUND",description:"Explore music ideas, styles and audio creation.",icon:"music-2"},
   website:{title:"Website Builder",kicker:"DESIGN & LAUNCH",description:"Generate, preview and download complete websites from a description.",icon:"panels-top-left",kind:"website"},
@@ -730,6 +731,198 @@ function renderWorkspace(info){
       renderHistory();
       renderRecentChats();
     }
+  }else if(info.kind==="learn"){
+    target.innerHTML = `
+      <div class="workspace-card learn-workspace">
+        <div class="learn-intro">
+          <div><span class="learn-kicker">YOUR PERSONAL PROGRAMMING TUTOR</span><h2>Learn to code, one step at a time.</h2><p>Choose a language and level. Your tutor will teach concepts, show examples, give exercises, review your code and help you build projects.</p></div>
+          <div class="learn-hero-icon"><i data-lucide="graduation-cap"></i></div>
+        </div>
+        <div class="learn-course-settings">
+          <label>Programming language
+            <select id="learnLanguage">
+              <option>Python</option><option>JavaScript</option><option>HTML & CSS</option><option>Java</option><option>C</option><option>C++</option><option>C#</option><option>PHP</option><option>TypeScript</option><option>Go</option><option>Ruby</option><option>SQL</option><option>Dart</option><option>Kotlin</option><option>Swift</option><option>Rust</option>
+            </select>
+          </label>
+          <label>Your level
+            <select id="learnLevel"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select>
+          </label>
+        </div>
+        <label class="learn-goal-label" for="learnGoal">What would you like to make or learn? <span>Optional</span></label>
+        <input id="learnGoal" class="learn-goal-input" maxlength="240" placeholder="Example: I want to build websites or create Android apps">
+        <div class="learn-progress-card">
+          <div class="learn-progress-top"><div><strong>Your learning progress</strong><span id="learnProgressText">0 lessons completed</span></div><button type="button" id="learnMarkComplete" disabled>Mark lesson complete</button></div>
+          <div class="learn-progress-track"><span id="learnProgressBar"></span></div>
+        </div>
+        <div class="learn-actions">
+          <button type="button" class="learn-primary-action" id="learnStart"><i data-lucide="play"></i> Start learning</button>
+          <button type="button" data-learn-action="practice"><i data-lucide="pencil-ruler"></i> Practice</button>
+          <button type="button" data-learn-action="next"><i data-lucide="arrow-right"></i> Next lesson</button>
+          <button type="button" data-learn-action="project"><i data-lucide="blocks"></i> Build a project</button>
+        </div>
+        <div class="learn-chat-box" id="learnChatBox" aria-live="polite"></div>
+        <form class="learn-compose" id="learnForm">
+          <select id="learnInputAction" aria-label="How should the tutor help?"><option value="chat">Ask the tutor</option><option value="check">Check my code or answer</option><option value="explain">Explain a concept</option></select>
+          <textarea id="learnInput" rows="3" maxlength="2600" placeholder="Ask a question, paste your code, or describe what you find difficult..." required></textarea>
+          <button type="submit" id="learnSend">Send</button>
+        </form>
+        <div class="learn-footnote">Lessons and progress are saved in this browser on this device. Code is reviewed by AI and is not executed here.</div>
+      </div>`;
+    const learnLanguage=document.getElementById("learnLanguage");
+    const learnLevel=document.getElementById("learnLevel");
+    const learnGoal=document.getElementById("learnGoal");
+    const learnChatBox=document.getElementById("learnChatBox");
+    const learnForm=document.getElementById("learnForm");
+    const learnInput=document.getElementById("learnInput");
+    const learnInputAction=document.getElementById("learnInputAction");
+    const learnSend=document.getElementById("learnSend");
+    const learnProgressText=document.getElementById("learnProgressText");
+    const learnProgressBar=document.getElementById("learnProgressBar");
+    const learnMarkComplete=document.getElementById("learnMarkComplete");
+    const learnSessionKey="midcrush_programming_sessions_v1";
+    const learnProgressKey="midcrush_programming_progress_v1";
+    let learnSessions={};
+    let learnProgress={};
+    let learnMessages=[];
+    let currentLessonTitle="";
+    let currentNextTopic="";
+    try{learnSessions=JSON.parse(localStorage.getItem(learnSessionKey)||"{}")||{};}catch{learnSessions={};}
+    try{learnProgress=JSON.parse(localStorage.getItem(learnProgressKey)||"{}")||{};}catch{learnProgress={};}
+    function learnKey(){return learnLanguage.value+"::"+learnLevel.value;}
+    function saveLearnState(){
+      try{
+        learnSessions[learnKey()]={messages:learnMessages.slice(-40),goal:learnGoal.value.trim(),lessonTitle:currentLessonTitle,nextTopic:currentNextTopic};
+        const keys=Object.keys(learnSessions);
+        if(keys.length>24)delete learnSessions[keys[0]];
+        localStorage.setItem(learnSessionKey,JSON.stringify(learnSessions));
+        localStorage.setItem(learnProgressKey,JSON.stringify(learnProgress));
+      }catch{showToast("Could not save learning progress. Browser storage may be full.");}
+      updateLearnProgress();
+    }
+    function updateLearnProgress(){
+      const key=learnKey();
+      const completed=Array.isArray(learnProgress[key])?learnProgress[key]:[];
+      learnProgressText.textContent=completed.length+" lessons completed";
+      learnProgressBar.style.width=Math.min(100,completed.length/12*100)+"%";
+      learnMarkComplete.disabled=!currentLessonTitle||completed.includes(currentLessonTitle);
+      learnMarkComplete.textContent=completed.includes(currentLessonTitle)?"Lesson completed":"Mark lesson complete";
+    }
+    function renderLearnHistory(){
+      learnChatBox.replaceChildren();
+      if(!learnMessages.length){
+        const welcome=document.createElement("div");welcome.className="learn-welcome";
+        welcome.innerHTML="<strong>Welcome to Learn Programming.</strong><p>Start with a guided lesson, ask a question, paste code for feedback, or choose a small project. You do not need previous programming experience.</p>";
+        learnChatBox.appendChild(welcome);
+      }else{
+        learnMessages.forEach(message=>{
+          const bubble=document.createElement("div");
+          bubble.className=message.role==="user"?"learn-user-message":"learn-tutor-message";
+          bubble.textContent=message.content;
+          learnChatBox.appendChild(bubble);
+        });
+      }
+      learnChatBox.scrollTop=learnChatBox.scrollHeight;
+    }
+    function loadLearnSession(){
+      const session=learnSessions[learnKey()]||{};
+      learnMessages=Array.isArray(session.messages)?session.messages.slice(-40):[];
+      learnGoal.value=typeof session.goal==="string"?session.goal:"";
+      currentLessonTitle=typeof session.lessonTitle==="string"?session.lessonTitle:"";
+      currentNextTopic=typeof session.nextTopic==="string"?session.nextTopic:"";
+      renderLearnHistory();updateLearnProgress();
+    }
+    function addTutorContent(container,data){
+      const reply=document.createElement("div");reply.className="learn-tutor-reply";reply.textContent=data.reply||"Let's work through that together.";
+      container.appendChild(reply);
+      if(data.codeExample&&data.codeExample.code){
+        const card=document.createElement("div");card.className="learn-code-card";
+        const top=document.createElement("div");top.className="learn-code-heading";
+        const lang=document.createElement("strong");lang.textContent=data.codeExample.language||learnLanguage.value;
+        const copy=document.createElement("button");copy.type="button";copy.textContent="Copy code";
+        copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(data.codeExample.code);showToast("Code copied.");}catch{showToast("Could not copy code.");}});
+        top.append(lang,copy);
+        const pre=document.createElement("pre");const code=document.createElement("code");code.textContent=data.codeExample.code;pre.appendChild(code);
+        card.append(top,pre);
+        if(data.codeExample.explanation){const explanation=document.createElement("p");explanation.textContent=data.codeExample.explanation;card.appendChild(explanation);}
+        container.appendChild(card);
+      }
+      if(data.exercise&&data.exercise.prompt){
+        const exercise=document.createElement("div");exercise.className="learn-exercise-card";
+        const title=document.createElement("strong");title.textContent="Your practice exercise";
+        const prompt=document.createElement("p");prompt.textContent=data.exercise.prompt;exercise.append(title,prompt);
+        if(data.exercise.starterCode){
+          const pre=document.createElement("pre");const code=document.createElement("code");code.textContent=data.exercise.starterCode;pre.appendChild(code);exercise.appendChild(pre);
+        }
+        const hint=document.createElement("button");hint.type="button";hint.textContent="Get a hint";hint.addEventListener("click",()=>sendLearnAction("hint","Give me a hint for the current exercise without revealing the full answer."));
+        exercise.appendChild(hint);container.appendChild(exercise);
+      }
+      if(data.feedback){
+        const feedback=document.createElement("div");feedback.className="learn-feedback";feedback.textContent=data.feedback;container.appendChild(feedback);
+      }
+      const suggested=document.createElement("div");suggested.className="learn-suggested-actions";
+      [["practice","Try another exercise"],["check","Check my code"],["project","Build a small project"]].forEach(([action,label])=>{
+        const button=document.createElement("button");button.type="button";button.textContent=label;
+        button.addEventListener("click",()=>{
+          if(action==="check"){learnInputAction.value="check";learnInput.focus();}
+          else sendLearnAction(action,action==="practice"?"Give me another exercise for this topic.":"Give me a small project using what I have learned.");
+        });
+        suggested.appendChild(button);
+      });
+      container.appendChild(suggested);
+    }
+    async function sendLearnAction(action,message){
+      if(learnSend.disabled)return;
+      const value=String(message||"").trim();
+      if(!value){learnInput.focus();return;}
+      const userBubble=document.createElement("div");userBubble.className="learn-user-message";userBubble.textContent=value;learnChatBox.appendChild(userBubble);
+      learnMessages.push({role:"user",content:value});
+      const waiting=document.createElement("div");waiting.className="learn-tutor-message learn-thinking";waiting.textContent="Preparing your lesson…";learnChatBox.appendChild(waiting);
+      learnSend.disabled=true;learnSend.textContent="Thinking…";
+      learnChatBox.scrollTop=learnChatBox.scrollHeight;saveLearnState();
+      try{
+        const response=await fetch("/api/learn",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+          language:learnLanguage.value,level:learnLevel.value,goal:learnGoal.value.trim(),action,
+          currentLesson:currentLessonTitle,
+          completedLessons:learnProgress[learnKey()]||[],
+          messages:learnMessages.slice(-12)
+        })});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(data.error||"The programming tutor could not respond.");
+        waiting.classList.remove("learn-thinking");waiting.replaceChildren();addTutorContent(waiting,data);
+        if(data.lessonTitle)currentLessonTitle=data.lessonTitle;
+        if(data.nextTopic)currentNextTopic=data.nextTopic;
+        const assistantContext=[data.reply,data.codeExample?.code?"Code example:\n"+data.codeExample.code:"",data.exercise?.prompt?"Exercise: "+data.exercise.prompt:"",data.exercise?.starterCode?"Starter code:\n"+data.exercise.starterCode:"",data.feedback?"Feedback: "+data.feedback:""].filter(Boolean).join("\n\n").slice(0,2500);
+        learnMessages.push({role:"assistant",content:assistantContext});
+        saveLearnState();
+      }catch(error){
+        waiting.classList.remove("learn-thinking");waiting.textContent=error.message||"The programming tutor is temporarily unavailable.";
+        learnMessages.pop();saveLearnState();
+      }finally{
+        learnSend.disabled=false;learnSend.textContent="Send";learnChatBox.scrollTop=learnChatBox.scrollHeight;learnInput.focus();
+      }
+    }
+    learnForm.addEventListener("submit",event=>{
+      event.preventDefault();
+      const message=learnInput.value.trim();if(!message)return;
+      const action=learnInputAction.value;
+      learnInput.value="";
+      sendLearnAction(action,message);
+    });
+    document.getElementById("learnStart").addEventListener("click",()=>sendLearnAction("start","Start my learning path. Teach me the first lesson for my selected language and level."));
+    document.querySelectorAll("[data-learn-action]").forEach(button=>button.addEventListener("click",()=>{
+      const action=button.dataset.learnAction;
+      const prompts={practice:"Give me a practice exercise based on my current learning level and lesson.",next:"Teach me the next lesson in the learning path. Avoid repeating completed lessons.",project:"Give me a small project suitable for my current level and selected language, with clear milestones."};
+      sendLearnAction(action,prompts[action]||"Help me continue learning.");
+    }));
+    learnMarkComplete.addEventListener("click",()=>{
+      if(!currentLessonTitle)return;
+      const key=learnKey();const completed=Array.isArray(learnProgress[key])?learnProgress[key]:[];
+      if(!completed.includes(currentLessonTitle)){completed.push(currentLessonTitle);learnProgress[key]=completed;saveLearnState();showToast("Lesson marked complete.");}
+    });
+    learnLanguage.addEventListener("change",loadLearnSession);
+    learnLevel.addEventListener("change",loadLearnSession);
+    learnGoal.addEventListener("change",saveLearnState);
+    loadLearnSession();
   }else if(info.kind==="image"){
     target.innerHTML='<div class="workspace-card image-workspace"><div class="workspace-label">Create an image from your imagination</div><p class="image-intro">Describe what you want to see. Choose a style, then generate your image.</p><form id="imageForm" class="image-form"><label for="imagePrompt">Image description</label><textarea id="imagePrompt" maxlength="1800" rows="4" placeholder="Example: A small African village at sunset, warm golden light, green hills, detailed scenery..." required></textarea><div class="image-form-bottom"><div class="image-style-field"><label for="imageStyle">Art style</label><select id="imageStyle"><option value="photorealistic, realistic photography">Photorealistic</option><option value="high-quality 3D animated render">3D animation</option><option value="anime illustration">Anime</option><option value="detailed digital artwork">Digital art</option><option value="cinematic concept art">Cinematic</option><option value="soft watercolor painting">Watercolor</option><option value="high-detail fantasy concept art">Fantasy</option><option value="retro futuristic synthwave artwork">Synthwave</option><option value="minimalist vector illustration">Minimalist</option><option value="comic book illustration with bold ink lines">Comic book</option><option value="traditional oil painting with rich brushstrokes">Oil painting</option><option value="pixel art with crisp pixel detail">Pixel art</option><option value="architectural visualization, realistic materials">Architectural render</option><option value="surreal dreamlike fine art">Surreal</option></select></div><div class="image-style-field"><label for="imageRatio">Aspect ratio</label><select id="imageRatio"><option value="1:1">Square post — 1:1</option><option value="16:9">YouTube / Landscape — 16:9</option><option value="9:16">Phone / TikTok / Status — 9:16</option><option value="4:3">Classic photo — 4:3</option><option value="3:2">Photo landscape — 3:2</option><option value="2:3">Photo portrait — 2:3</option></select></div><button type="submit" class="image-generate-button" id="imageGenerateButton"><i data-lucide="sparkles"></i> Generate image</button></div></form><div class="image-status" id="imageStatus" role="status" aria-live="polite">Your generated image will appear here.</div><div class="image-result" id="imageResult" hidden><img id="generatedImage" alt="AI-generated image"><div class="image-result-actions"><a id="downloadImageButton" class="image-download-button" download="midcrush-ai-image.jpg"><i data-lucide="download"></i> Save image</a><button type="button" id="regenerateImageButton" class="image-regenerate-button"><i data-lucide="refresh-cw"></i> Generate again</button><span class="image-model-label">Generated with FLUX.2 Klein 9B</span></div></div><div class="image-note">Cloudflare Workers AI includes a limited free daily allowance. Image generation may stop when the daily allowance is used up.</div></div>';
     const imageForm=document.getElementById("imageForm");
