@@ -378,7 +378,10 @@ function renderWorkspace(info){
     chatMode.addEventListener("change",()=>{
       const websiteMode=chatMode.value.startsWith("website");
       chatInput.placeholder=websiteMode?"Describe the website or application you want to build...":chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";
-      if(!websiteMode&&chatMode.value==="chat"&&websiteSessionActive){websiteSessionActive=false;persistCurrentConversation();}
+      if(chatMode.value==="chat"){
+        cancelPendingVisualAction();
+        if(websiteSessionActive){websiteSessionActive=false;persistCurrentConversation();}
+      }
     });
     function isImageRequest(value){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
@@ -398,6 +401,18 @@ function renderWorkspace(info){
       const text=String(value||"").trim();
       return /^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare|summarize|summarise|transcribe|extract)\b/i.test(text)
         || /\b(read the text|what is shown|what's shown|identify this|describe this|what does .* say|translate the text)\b/i.test(text);
+    }
+    function isGeneralTopicMessage(value){
+      const text=String(value||"").trim();
+      if(!text||isWebsiteRequest(text))return false;
+      const questionOrLearning=/^(what|who|why|when|where|which|how|is|are|can|could|would|should|explain|teach|tell me|help me with|solve|calculate|write|draft|compose|summarize|summarise|translate|compare|define|describe)\b/i.test(text);
+      const unrelatedSubjects=/\b(algebra|mathematics|maths?|stoichiometry|chemistry|physics|biology|photosynthesis|geography|history|literature|grammar|english homework|homework|schoolwork|programming|javascript|python|database|computer science|essay|poem|letter|email|recipe|weather|football|arsenal|free fire)\b/i.test(text);
+      return questionOrLearning||unrelatedSubjects;
+    }
+    function cancelPendingVisualAction(){
+      if(pendingGeneration){pendingGeneration.waiting?.remove();pendingGeneration=null;}
+      if(pendingEditCard){pendingEditCard.remove();pendingEditCard=null;}
+      pendingEdit=null;
     }
     function isAffirmative(value){
       const text=String(value||"").toLowerCase().replace(/[’']/g,"").replace(/[.,!?]/g," ").replace(/\s+/g," ").trim();
@@ -666,7 +681,19 @@ function renderWorkspace(info){
       e.preventDefault();
       const value=chatInput.value.trim();
       if(!value||sendButton.disabled)return;
-      const mode=chatMode.value;
+      let mode=chatMode.value;
+      if(isGeneralTopicMessage(value)){
+        cancelPendingVisualAction();
+        if(mode!=="chat"){
+          chatMode.value="chat";
+          mode="chat";
+          chatInput.placeholder="Message MIDCRUSH AI...";
+        }
+        const imageToAsk=attachedImageData||(currentImageData&&isImageQuestion(value)?currentImageData:"");
+        chatInput.value="";
+        requestReply(value,false,imageToAsk);
+        return;
+      }
       if(pendingEdit==="confirm"){
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
         chatInput.value="";
