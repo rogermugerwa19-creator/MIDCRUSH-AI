@@ -112,9 +112,10 @@ export async function onRequestPost({request,env}) {
       prompt:clean(raw.exercise.prompt,"",900),
       starterCode:clean(raw.exercise.starterCode,"",2600)
     }:null;
+    const fallbackLessonTitle=action==="start" ? language+" fundamentals" : action==="next" ? (currentLesson?"Next lesson after "+currentLesson:language+" next lesson") : action==="lesson" ? (currentLesson||language+" lesson") : "";
     return json({
       reply:clean(raw.reply,"",5200),
-      lessonTitle:clean(raw.lessonTitle,"",120),
+      lessonTitle:clean(raw.lessonTitle,fallbackLessonTitle,120),
       topic:clean(raw.topic,"",120),
       codeExample:code&&code.code?code:null,
       exercise:exercise&&exercise.prompt?exercise:null,
