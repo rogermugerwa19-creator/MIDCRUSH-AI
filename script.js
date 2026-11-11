@@ -32,7 +32,7 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or describe a website. I can ask a few questions, then build it here in the chat.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="website">Build Website</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or describe a website. I can ask a few questions, then build it here in the chat.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="website">Build Website · Auto choose</option><option value="website-single">Standalone HTML</option><option value="website-fullstack">Full-stack Project</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const chatMode=document.getElementById("chatMode");
@@ -374,7 +374,7 @@ function renderWorkspace(info){
       reader.onload=()=>{const source=new Image();source.onload=()=>{const scale=Math.min(1,511/Math.max(source.width,source.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));canvas.getContext("2d").drawImage(source,0,0,canvas.width,canvas.height);attachedImageData=canvas.toDataURL("image/jpeg",0.88);currentImageData=attachedImageData;persistCurrentConversation();chatImagePreview.hidden=false;chatImagePreview.replaceChildren();const img=document.createElement("img");img.src=attachedImageData;img.alt="Photo ready to edit";const remove=document.createElement("button");remove.type="button";remove.textContent="Remove photo";remove.addEventListener("click",()=>{attachedImageData="";currentImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();persistCurrentConversation();});chatImagePreview.append(img,remove);};source.onerror=()=>showToast("Could not read that image. Try another photo.");source.src=String(reader.result||"");};
       reader.readAsDataURL(file);
     });
-    chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":chatMode.value==="website"?"Describe the website you want to build...":"Message MIDCRUSH AI...";});
+    chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value.startsWith("website")?"Describe the website or application you want to build...":chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";});
     function isImageRequest(value){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
@@ -577,39 +577,20 @@ function renderWorkspace(info){
       const text=String(value||"").trim();
       if(/^(how|what|why|when|where|which)\b/i.test(text)||/^(can you explain|tell me how)\b/i.test(text))return false;
       return /\b(build|create|make|design|generate|develop|code|i need|i want|help me)\b/i.test(text)
-        && /\b(website|web site|webpage|web page|landing page|online store|e-?commerce site)\b/i.test(text);
+        && /\b(website|web site|webpage|web page|web app|web application|application|landing page|online store|e-?commerce site)\b/i.test(text);
     }
-    function renderWebsiteChatOptions(container,items,type){
-      if(!Array.isArray(items)||!items.length)return;
-      const panel=document.createElement("div");
-      panel.className="website-chat-options "+(type==="recommendations"?"recommendation-options":"quick-answer-options");
-      if(type==="recommendations"){
-        const heading=document.createElement("strong");heading.className="website-chat-options-title";heading.textContent="Things you could add next";
-        panel.appendChild(heading);
-      }
-      items.slice(0,4).forEach(item=>{
-        const option=typeof item==="string"?{title:item,description:"",action:item,mode:"add"}:item;
-        const card=document.createElement("div");card.className="website-chat-option";
-        const title=document.createElement("strong");title.textContent=option.title||"Suggested next step";
-        card.appendChild(title);
-        if(option.description){const description=document.createElement("p");description.textContent=option.description;card.appendChild(description);}
-        const button=document.createElement("button");button.type="button";
-        button.textContent=type==="recommendations"?(option.mode==="guide"?"Guide me":"Add this"):"Choose this";
-        button.addEventListener("click",()=>requestWebsiteChat(String(option.action||option.title||"Please help me with this option.")));
-        card.appendChild(button);panel.appendChild(card);
-      });
-      container.appendChild(panel);
-    }
-    async function requestWebsiteChat(value){
+    async function requestWebsiteChat(value,requestedPreference){
       if(sendButton.disabled)return;
+      if(requestedPreference)websitePreference=requestedPreference;
+      if(!websitePreference)websitePreference="auto";
       ensureConversation();
-      if(!websiteSessionActive){websiteSessionActive=true;websiteMessages=[];websiteSiteData=null;websiteHtml="";}
+      if(!websiteSessionActive){websiteSessionActive=true;websiteMessages=[];websiteSiteData=null;websiteHtml="";websiteProjectMode="single-html";websiteFiles=[];websiteProjectInfo=null;websiteActiveFilePath="";}
       websiteMessages.push({role:"user",content:value});history.push({role:"user",content:value});persistCurrentConversation();
       const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
       const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent=websiteSiteData?"Reviewing your requested website change…":"Let's plan your website…";chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
       sendButton.disabled=true;chatInput.disabled=true;chatMode.disabled=true;
       try{
-        const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"chat",messages:websiteMessages.slice(-12),currentSiteData:websiteSiteData||undefined})});
+        const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"chat",messages:websiteMessages.slice(-12),projectPreference:websitePreference,currentSiteData:websiteSiteData||undefined,currentProject:websiteProjectMode==="multi-file"?{...websiteProjectInfo,files:websiteFiles}:undefined})});
         const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"The website builder could not respond. Please try again.");
         let answer="";
         if(data.status==="clarify"&&typeof data.question==="string"&&data.question.trim()){
@@ -619,14 +600,29 @@ function renderWorkspace(info){
         }else if(data.status==="guide"&&typeof data.message==="string"&&data.message.trim()){
           answer=data.message.trim();
           waiting.textContent=answer;
+        }else if(data.status==="ready"&&data.projectMode==="multi-file"&&Array.isArray(data.files)&&data.files.length){
+          websiteProjectMode="multi-file";
+          websiteFiles=data.files.filter(file=>file&&typeof file.path==="string"&&typeof file.content==="string").slice(0,16);
+          if(!websiteFiles.length)throw new Error("The AI returned a project without readable source files.");
+          websiteProjectInfo=data.project&&typeof data.project==="object"?data.project:{};
+          websiteSiteData=null;websiteHtml="";
+          websiteActiveFilePath=websiteFiles[0].path;
+          answer=typeof data.assistantMessage==="string"&&data.assistantMessage.trim()?data.assistantMessage.trim():"Your multi-file project is ready. Review the files and setup instructions below.";
+          waiting.textContent=answer;
+          if(Array.isArray(data.recommendations)&&data.recommendations.length){
+            const summary="Suggested improvements: "+data.recommendations.map(item=>item.title).join("; ");
+            answer+="\n\n"+summary;waiting.textContent=answer;
+            renderWebsiteChatOptions(waiting,data.recommendations,"recommendations");
+          }
+          renderWebsiteArtifact();
         }else if(data.status==="ready"&&typeof data.html==="string"&&data.html.includes("</html>")&&data.siteData){
+          websiteProjectMode="single-html";websiteFiles=[];websiteProjectInfo=null;websiteActiveFilePath="";
           websiteSiteData=data.siteData;websiteHtml=data.html;
           answer=typeof data.assistantMessage==="string"&&data.assistantMessage.trim()?data.assistantMessage.trim():"The website is ready. You can ask for changes or choose an improvement below.";
           waiting.textContent=answer;
           if(Array.isArray(data.recommendations)&&data.recommendations.length){
             const summary="Suggested improvements: "+data.recommendations.map(item=>item.title).join("; ");
-            answer+="\n\n"+summary;
-            waiting.textContent=answer;
+            answer+="\n\n"+summary;waiting.textContent=answer;
             renderWebsiteChatOptions(waiting,data.recommendations,"recommendations");
           }
           renderWebsiteArtifact();
@@ -697,7 +693,7 @@ function renderWorkspace(info){
         }
         return;
       }
-      if(mode==="website"||(mode==="chat"&&isWebsiteRequest(value))){chatMode.value="website";await requestWebsiteChat(value);return;}
+      if(mode==="website"||mode==="website-single"||mode==="website-fullstack"||(mode==="chat"&&isWebsiteRequest(value))){const preference=mode==="website-single"?"single-html":mode==="website-fullstack"?"multi-file":"auto";if(mode==="chat")chatMode.value="website";await requestWebsiteChat(value,preference);return;}
       if(mode==="edit"&&!attachedImageData&&!currentImageData){showToast("Add a photo first.");return;}
       if(mode==="generate"||(mode==="chat"&&!attachedImageData&&isImageRequest(value))){
         ensureConversation();
