@@ -352,11 +352,12 @@ function renderWorkspace(info){
               webSources=(Array.isArray(researchData.results)?researchData.results:[]).slice(0,6).map(item=>({
                 title:String(item.title||"Web source").slice(0,180),
                 url:String(item.url||""),
-                content:String(item.content||"").slice(0,800)
+                content:String(item.content||"").slice(0,800),
+                publishedDate:String(item.publishedDate||"").slice(0,40)
               })).filter(item=>/^https?:\/\//i.test(item.url));
               webContext=[
                 researchData.answer?"Search provider summary: "+String(researchData.answer).slice(0,1800):"",
-                ...webSources.map((item,index)=>"Source ["+(index+1)+"]: "+item.title+"\nURL: "+item.url+"\nExtract: "+item.content)
+                ...webSources.map((item,index)=>"Source ["+(index+1)+"]: "+item.title+"\nURL: "+item.url+"\nPublished: "+(item.publishedDate||"Date not provided")+"\nExtract: "+item.content)
               ].filter(Boolean).join("\n\n").slice(0,8000);
               if(!webSources.length)webNotice="The search provider did not return usable sources.";
             }
