@@ -57,7 +57,7 @@ export async function onRequestPost({request,env}){
     include_image_descriptions:type==="images",
     include_favicon:true,
     include_domains:scope&&includeDomains[scope]?includeDomains[scope]:[],
-    exclude_domains:type==="news"?["tiktok.com"]:[],
+    exclude_domains:type==="news"?["tiktok.com",...(isUnebNews?["youtube.com"]:[])]:[],
     safe_search:true,
     include_usage:true
   };
@@ -113,6 +113,7 @@ export async function onRequestPost({request,env}){
         let host="";
         try{host=new URL(item.url).hostname.toLowerCase();}catch{}
         if(/(^|\.)tiktok\.com$/.test(host)&&/\/discover\//i.test(item.url))continue;
+        if(isUnebNews&&/(^|\.)youtube\.com$/.test(host))continue;
         if(isUnebNews){
           const evidence=(item.title+" "+item.content).toLowerCase();
           if(!/\b(uneb|uganda national examinations board|uace|uce|ple)\b/.test(evidence))continue;
