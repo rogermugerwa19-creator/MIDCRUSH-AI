@@ -45,10 +45,11 @@ export async function onRequestPost({request,env}){
   };
   const requestBody={
     query:scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:query,
-    search_depth:"basic",
+    search_depth:type==="news"?"advanced":"basic",
     chunks_per_source:2,
-    max_results:8,
+    max_results:type==="news"?10:8,
     topic:type==="news"?"news":"general",
+    ...(type==="news"?{days:14}:{}),
     include_answer:true,
     include_raw_content:false,
     include_images:type==="images",
@@ -71,7 +72,7 @@ export async function onRequestPost({request,env}){
       if(response.status===429||response.status===432||response.status===433)return json({error:"The search service has reached its current request or credit limit. Check your Tavily usage and try again later."},429);
       return json({error:detail||"The internet search provider could not complete this request."},502);
     }
-    const results=(Array.isArray(data.results)?data.results:[]).slice(0,8).map(item=>({
+    const results=(Array.isArray(data.results)?data.results:[]).map(item=>({
       title:clean(item?.title,180)||"Untitled result",
       url:safeUrl(item?.url),
       content:clean(item?.content,900),
@@ -79,6 +80,17 @@ export async function onRequestPost({request,env}){
       publishedDate:clean(item?.published_date,40),
       favicon:safeUrl(item?.favicon)
     })).filter(item=>item.url);
+    if(type==="news"){
+      results.sort((a,b)=>{
+        const dateA=Date.parse(a.publishedDate)||0;
+        const dateB=Date.parse(b.publishedDate)||0;
+        if(dateA!==dateB)return dateB-dateA;
+        return (b.score||0)-(a.score||0);
+      });
+      results.splice(10);
+    }else{
+      results.splice(8);
+    }
     const images=(Array.isArray(data.images)?data.images:[]).slice(0,12).map(item=>({
       url:safeUrl(typeof item==="string"?item:item?.url),
       description:clean(item?.description,180)
