@@ -44,7 +44,7 @@ export async function onRequestPost({request,env}){
     tiktok:["tiktok.com"]
   };
   const kampalaDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kampala",year:"numeric",month:"long",day:"numeric"}).format(new Date());
-  const isUnebNews=type==="news"&&/\\b(uneb|uganda national examinations board)\\b/i.test(query);
+  const isUnebNews=type==="news"&&/\b(uneb|uganda national examinations board)\b/i.test(query);
   const baseRequest={
     search_depth:type==="news"?"advanced":"basic",
     chunks_per_source:3,
@@ -112,10 +112,10 @@ export async function onRequestPost({request,env}){
       for(const item of results){
         let host="";
         try{host=new URL(item.url).hostname.toLowerCase();}catch{}
-        if(/(^|\\.)tiktok\\.com$/.test(host)&&/\\/discover\\//i.test(item.url))continue;
+        if(/(^|\.)tiktok\.com$/.test(host)&&/\/discover\//i.test(item.url))continue;
         if(isUnebNews){
           const evidence=(item.title+" "+item.content).toLowerCase();
-          if(!/\\b(uneb|uganda national examinations board|uace|uce|ple)\\b/.test(evidence))continue;
+          if(!/\b(uneb|uganda national examinations board|uace|uce|ple)\b/.test(evidence))continue;
           const titleTerms=item.title.toLowerCase().match(/[a-z0-9]{4,}/g)||[];
           const stop=new Set(["uganda","national","examinations","examination","board","latest","news","today","2026","2025"]);
           const anchors=titleTerms.filter(word=>!stop.has(word));
@@ -130,7 +130,7 @@ export async function onRequestPost({request,env}){
             if(/^utm_/i.test(key)||["fbclid","gclid","mc_cid","mc_eid"].includes(key.toLowerCase()))parsed.searchParams.delete(key);
           }
           parsed.searchParams.sort();
-          canonical=parsed.toString().replace(/\\/$/,"");
+          canonical=parsed.toString().replace(/\/$/,"");
         }catch{}
         const titleKey=item.title.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
         if(seenUrls.has(canonical)||seenTitles.has(titleKey))continue;
