@@ -386,7 +386,7 @@ function renderWorkspace(info){
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
         const rawAnswer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
-        const answer=useWebSearch?rawAnswer.replace(/\\\*/g,"").replace(/\*/g,"").replace(/\\`/g,"").replace(/`/g,""):rawAnswer;
+        const answer=useWebSearch?rawAnswer.replace(/(?:\\\\+)?\*{1,3}/g,"").replace(/(?:\\\\+)?`{1,3}/g,""):rawAnswer;
         waiting.textContent=answer;
         if(Array.isArray(data.sources)&&data.sources.length){
           const sourceBox=document.createElement("div");sourceBox.className="chat-web-sources";
