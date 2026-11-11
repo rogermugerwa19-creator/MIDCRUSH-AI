@@ -352,7 +352,7 @@ function renderWorkspace(info){
               webSources=(Array.isArray(researchData.results)?researchData.results:[]).slice(0,10).map(item=>({
                 title:String(item.title||"Web source").slice(0,180),
                 url:String(item.url||""),
-                content:String(item.content||"").slice(0,600),
+                content:String(item.content||"").slice(0,1600),
                 publishedDate:String(item.publishedDate||"").slice(0,40)
               })).filter(item=>/^https?:\/\//i.test(item.url));
               webContext=[
@@ -391,7 +391,7 @@ function renderWorkspace(info){
         if(Array.isArray(data.sources)&&data.sources.length){
           const sourceBox=document.createElement("div");sourceBox.className="chat-web-sources";
           const sourceTitle=document.createElement("strong");sourceTitle.textContent="Web sources";sourceBox.appendChild(sourceTitle);
-          data.sources.slice(0,6).forEach((source,index)=>{
+          data.sources.slice(0,12).forEach((source,index)=>{
             try{
               const url=new URL(source.url);
               if(url.protocol!=="https:"&&url.protocol!=="http:")return;
