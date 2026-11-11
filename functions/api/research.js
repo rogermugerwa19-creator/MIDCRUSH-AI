@@ -87,7 +87,30 @@ export async function onRequestPost({request,env}){
         if(dateA!==dateB)return dateB-dateA;
         return (b.score||0)-(a.score||0);
       });
-      results.splice(10);
+      // Remove duplicate URLs and repeated headlines before the chat receives
+      // its six-source evidence limit. Keep different publishers as separate
+      // sources when they report the same event so claims can be cross-checked.
+      const seenUrls=new Set();
+      const seenTitles=new Set();
+      const unique=[];
+      for(const item of results){
+        let canonical=item.url;
+        try{
+          const parsed=new URL(item.url);
+          parsed.hash="";
+          for(const key of [...parsed.searchParams.keys()]){
+            if(/^utm_/i.test(key)||["fbclid","gclid","mc_cid","mc_eid"].includes(key.toLowerCase()))parsed.searchParams.delete(key);
+          }
+          parsed.searchParams.sort();
+          canonical=parsed.toString().replace(/\\/$/,"");
+        }catch{}
+        const titleKey=item.title.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+        if(seenUrls.has(canonical)||seenTitles.has(titleKey))continue;
+        seenUrls.add(canonical);
+        seenTitles.add(titleKey);
+        unique.push(item);
+      }
+      results.splice(0,results.length,...unique.slice(0,10));
     }else{
       results.splice(8);
     }
