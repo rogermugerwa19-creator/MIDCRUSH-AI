@@ -362,6 +362,20 @@ function renderWorkspace(info){
             }
           }catch{webNotice="Could not reach the web search service.";}
         }
+        if(useWebSearch&&!imageData&&(!webSources.length||webNotice)){
+          const explanation=webNotice||"The search provider returned no usable source links.";
+          const safeMessage="I couldn't verify this using live web sources, so I won't generate a current-events answer from memory.";
+          waiting.textContent=safeMessage;
+          const note=document.createElement("small");
+          note.className="chat-web-note";
+          note.textContent="Web search unavailable: "+explanation;
+          waiting.appendChild(note);
+          latestReply=safeMessage+"\n"+note.textContent;
+          copyReplyButton.disabled=false;
+          history.push({role:"assistant",content:safeMessage});
+          persistCurrentConversation();
+          return;
+        }
         waiting.textContent=useWebSearch?"Preparing an answer…":"MIDCRUSH AI is thinking…";
         const response=await fetch("/api/chat",{
           method:"POST",
