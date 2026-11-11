@@ -64,7 +64,7 @@ export async function onRequestPost({request,env}){
   try{
     const searchQueries=isUnebNews?[
       query+" Uganda UNEB latest UACE examination news "+kampalaDate,
-      "Uganda UNEB PLE examination malpractice arrests latest "+new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Kampala",month:"long",year:"numeric"}).format(new Date()),
+      "UNEB 74 arrested 11 taken to court 2026 PLE examination malpractice "+kampalaDate,
       "Uganda UNEB UACE examinations updates candidates latest "+new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Kampala",month:"long",year:"numeric"}).format(new Date())
     ]:[scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:query];
     const responses=await Promise.all(searchQueries.map(searchQuery=>fetch("https://api.tavily.com/search",{
