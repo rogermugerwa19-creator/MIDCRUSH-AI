@@ -57,7 +57,7 @@ export async function onRequestPost({request,env}){
     include_image_descriptions:type==="images",
     include_favicon:true,
     include_domains:scope&&includeDomains[scope]?includeDomains[scope]:[],
-    exclude_domains:type==="news"?["tiktok.com",...(isUnebNews?["youtube.com","youtu.be","x.com","twitter.com","t.co","facebook.com","instagram.com","teapawt.org","sotwe.com","xitter.cf"]:[])]:[],
+    exclude_domains:type==="news"?["tiktok.com",...(isUnebNews?["youtube.com","youtu.be","x.com","twitter.com","t.co","facebook.com","instagram.com","teapawt.org","sotwe.com","xitter.cf","studocu.com"]:[])]:[],
     safe_search:true,
     include_usage:true
   };
@@ -113,6 +113,7 @@ export async function onRequestPost({request,env}){
         let host="";
         try{host=new URL(item.url).hostname.toLowerCase();}catch{}
         if(/(^|\.)tiktok\.com$/.test(host)&&/\/discover\//i.test(item.url))continue;
+        if(isUnebNews&&/(^|\/)tag\//i.test(new URL(item.url).pathname))continue;
         if(isUnebNews&&/(^|\.)(youtube\.com|youtu\.be|x\.com|twitter\.com|t\.co|facebook\.com|instagram\.com|teapawt\.org|sotwe\.com|xitter\.cf)$/.test(host))continue;
         if(isUnebNews){
           const titleText=item.title.toLowerCase();
