@@ -387,10 +387,8 @@ function renderWorkspace(info){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
     function getRequestedAspectRatio(value,fallback){
-      const match=String(value||"").match(/(?:^|\b)(16|9|4|3|2|1)\s*[:=x×]\s*(16|9|4|3|2|1)(?:\b|$)/i);
-      if(!match)return fallback;
-      const ratio=match[1]+":"+match[2];
-      return ["16:9","9:16","1:1","4:3","3:2","2:3"].includes(ratio)?ratio:fallback;
+      const match=String(value||"").match(/\b(16\s*:\s*9|9\s*:\s*16|1\s*:\s*1|4\s*:\s*3|3\s*:\s*2|2\s*:\s*3)\b/);
+      return match?match[1].replace(/\s/g,""):fallback;
     }
     function isPhotoEditRequest(value){
       const text=String(value||"").toLowerCase();
@@ -721,22 +719,6 @@ function renderWorkspace(info){
           editSession.ratio=getRequestedAspectRatio(value,editSession.ratio);
           showEditConfirmation();return;
         }
-      }
-      const typedRatio=getRequestedAspectRatio(value,"");
-      if(typedRatio&&pendingGeneration){
-        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
-        if(pendingGeneration.ratioControl)pendingGeneration.ratioControl.value=typedRatio;
-        chatInput.value="";
-        const note=document.createElement("div");note.className="reply-bubble";note.textContent="Aspect ratio set to "+typedRatio+". You can now create the image or change the topic.";
-        chatBox.appendChild(note);chatBox.scrollTop=chatBox.scrollHeight;return;
-      }
-      if(typedRatio&&pendingEdit==="confirm"&&editSession?.prompt){
-        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
-        editSession.ratio=typedRatio;chatInput.value="";showEditConfirmation();return;
-      }
-      if(typedRatio&&pendingEdit==="details"&&editSession?.prompt){
-        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
-        editSession.ratio=typedRatio;chatInput.value="";showEditConfirmation();return;
       }
       if(pendingGeneration&&isAffirmative(value)){
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
