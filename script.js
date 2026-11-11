@@ -404,12 +404,12 @@ function renderWorkspace(info){
     }
     function isGeneralTopicMessage(value){
       const text=String(value||"").trim();
-      if(!text||isWebsiteRequest(text))return false;
+      if(!text||isWebsiteRequest(text)||isImageRequest(text)||isPhotoEditRequest(text))return false;
+      const topicChange=/^(new topic|change topic|switch topic|talk about something else|forget that|i want to learn|i need help|i have a question|lets talk about)\b/i.test(text);
       const questionOrLearning=/^(what|who|why|when|where|which|how|is|are|can|could|would|should|explain|teach|tell me|help me with|solve|calculate|write|draft|compose|summarize|summarise|translate|compare|define|describe)\b/i.test(text);
       const unrelatedSubjects=/\b(algebra|mathematics|maths?|stoichiometry|chemistry|physics|biology|photosynthesis|geography|history|literature|grammar|english homework|homework|schoolwork|programming|javascript|python|database|computer science|essay|poem|letter|email|recipe|weather|football|arsenal|free fire)\b/i.test(text);
-      return questionOrLearning||unrelatedSubjects;
-    }
-    function cancelPendingVisualAction(){
+      return topicChange||questionOrLearning||unrelatedSubjects;
+    }    function cancelPendingVisualAction(){
       if(pendingGeneration){pendingGeneration.waiting?.remove();pendingGeneration=null;}
       if(pendingEditCard){pendingEditCard.remove();pendingEditCard=null;}
       pendingEdit=null;
@@ -690,6 +690,7 @@ function renderWorkspace(info){
           chatInput.placeholder="Message MIDCRUSH AI...";
         }
         const imageToAsk=attachedImageData||(currentImageData&&isImageQuestion(value)?currentImageData:"");
+        if(attachedImageData){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
         chatInput.value="";
         requestReply(value,false,imageToAsk);
         return;
