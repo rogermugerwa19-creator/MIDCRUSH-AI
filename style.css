@@ -159,3 +159,15 @@
 .chat-website-preview{display:block;width:100%;height:560px;border:1px solid #34314a;border-radius:9px;background:white}
 .chat-website-artifact p{font-size:10px;line-height:1.5;color:#9895b3;margin:9px 0 0}
 @media(max-width:620px){.chat-website-artifact{padding:9px}.chat-website-preview{height:480px}.chat-website-artifact-heading{align-items:flex-start;flex-direction:column}.chat-website-artifact-actions button{flex:1}}
+
+
+/* Conversational website-builder recommendations and guided choices */
+.website-chat-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;width:min(100%,620px)}
+.website-chat-options-title{grid-column:1/-1;color:#c9c1ed;font-size:10px;letter-spacing:.02em;margin:0 0 2px}
+.website-chat-option{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px;border:1px solid #47405f;border-radius:10px;background:#17172d}
+.website-chat-option strong{font-size:10px;line-height:1.4;color:#eeeaff}
+.website-chat-option p{margin:0;color:#aaa6c1;font-size:9px;line-height:1.5}
+.website-chat-option button{margin-top:auto;border:1px solid #6b5a9d;border-radius:7px;padding:6px 9px;background:#292044;color:#eee8ff;font:600 9px var(--font);cursor:pointer}
+.website-chat-option button:hover{background:#42316e;border-color:#9a80e9}
+.quick-answer-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:620px){.website-chat-options{grid-template-columns:1fr}.website-chat-option{padding:9px}}
