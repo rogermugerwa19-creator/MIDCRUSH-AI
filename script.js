@@ -585,6 +585,23 @@ function renderWorkspace(info){
       const target=/\b(website|web site|webpage|web page|web app|web application|application|landing page|online store|e-?commerce site|header|footer|navigation|navbar|section|layout|theme|button|menu|movie card|project file)\b/i.test(text);
       return action&&target;
     }
+    async function handOffToNormalChat(waiting){
+      websiteMessages.pop();
+      websiteSessionActive=false;
+      chatMode.value="chat";
+      chatInput.placeholder="Message MIDCRUSH AI...";
+      waiting.textContent="Switching to normal chat…";
+      const response=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({messages:history.slice(-12)})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||"Normal Chat could not answer right now.");
+      const answer=typeof data.response==="string"&&data.response.trim()?data.response:"I could not generate a response. Please try again.";
+      waiting.textContent=answer;
+      return answer;
+    }
     async function requestWebsiteChat(value,requestedPreference){
       if(sendButton.disabled)return;
       if(requestedPreference)websitePreference=requestedPreference;
@@ -639,7 +656,8 @@ function renderWorkspace(info){
           }
           renderWebsiteArtifact();
         }else throw new Error("The AI returned an incomplete website response. Please try again.");
-        history.push({role:"assistant",content:answer});websiteMessages.push({role:"assistant",content:answer});
+        history.push({role:"assistant",content:answer});
+        if(data.status!=="chat")websiteMessages.push({role:"assistant",content:answer});
         latestReply=answer;copyReplyButton.disabled=false;persistCurrentConversation();
       }catch(error){waiting.textContent=error.message||"The website could not be created. Please try again.";chatBox.scrollTop=chatBox.scrollHeight;}
       finally{sendButton.disabled=false;chatInput.disabled=false;chatMode.disabled=false;chatBox.scrollTop=chatBox.scrollHeight;chatInput.focus();}
