@@ -132,7 +132,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const image = typeof body.image === "string" ? body.image : "";
-  const webContext = typeof body.webContext === "string" ? body.webContext.trim().slice(0, 16000) : "";
+  const webContext = typeof body.webContext === "string" ? body.webContext.trim().slice(0, 18000) : "";
   const webSources = Array.isArray(body.webSources) ? body.webSources.slice(0, 10).map(item => {
     if (!item || typeof item !== "object") return null;
     let url = "";
