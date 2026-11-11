@@ -349,7 +349,7 @@ function renderWorkspace(info){
             const researchData=await researchResponse.json().catch(()=>({}));
             if(!researchResponse.ok)webNotice=researchData.error||"Web search is not available right now.";
             else{
-              webSources=(Array.isArray(researchData.results)?researchData.results:[]).slice(0,10).map(item=>({
+              webSources=(Array.isArray(researchData.results)?researchData.results:[]).slice(0,12).map(item=>({
                 title:String(item.title||"Web source").slice(0,180),
                 url:String(item.url||""),
                 content:String(item.content||"").slice(0,1600),
@@ -358,7 +358,7 @@ function renderWorkspace(info){
               webContext=[
                 researchData.type!=="news"&&researchData.answer?"Search provider summary: "+String(researchData.answer).slice(0,1800):"",
                 ...webSources.map((item,index)=>"Source ["+(index+1)+"]: "+item.title+"\nURL: "+item.url+"\nSearch-provider publication-date metadata (not the event date; verify against article text): "+(item.publishedDate||"Date not provided")+"\nExtract: "+item.content)
-              ].filter(Boolean).join("\n\n").slice(0,18000);
+              ].filter(Boolean).join("\n\n").slice(0,22000);
               if(!webSources.length)webNotice="The search provider did not return usable sources.";
             }
           }catch{webNotice="Could not reach the web search service.";}
