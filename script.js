@@ -455,9 +455,9 @@ function renderWorkspace(info){
     }
     function isWebsiteRequest(value){
       const text=String(value||"").trim();
-      if(/^(how|what|why|when|where|which)\\b/i.test(text)||/^(can you explain|tell me how)\\b/i.test(text))return false;
-      return /\\b(build|create|make|design|generate|develop|code|i need|i want|help me)\\b/i.test(text)
-        && /\\b(website|web site|webpage|web page|landing page|online store|e-?commerce site)\\b/i.test(text);
+      if(/^(how|what|why|when|where|which)\b/i.test(text)||/^(can you explain|tell me how)\b/i.test(text))return false;
+      return /\b(build|create|make|design|generate|develop|code|i need|i want|help me)\b/i.test(text)
+        && /\b(website|web site|webpage|web page|landing page|online store|e-?commerce site)\b/i.test(text);
     }
     async function requestWebsiteChat(value){
       ensureConversation();
