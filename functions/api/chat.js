@@ -133,7 +133,7 @@ export async function onRequestPost({ request, env }) {
 
   const image = typeof body.image === "string" ? body.image : "";
   const webContext = typeof body.webContext === "string" ? body.webContext.trim().slice(0, 8000) : "";
-  const webSources = Array.isArray(body.webSources) ? body.webSources.slice(0, 6).map(item => {
+  const webSources = Array.isArray(body.webSources) ? body.webSources.slice(0, 8).map(item => {
     if (!item || typeof item !== "object") return null;
     let url = "";
     try {
@@ -144,7 +144,7 @@ export async function onRequestPost({ request, env }) {
     return {
       title: typeof item.title === "string" ? item.title.slice(0, 180) : "Web source",
       url,
-      content: typeof item.content === "string" ? item.content.slice(0, 800) : "",
+      content: typeof item.content === "string" ? item.content.slice(0, 700) : "",
       publishedDate: typeof item.publishedDate === "string" ? item.publishedDate.slice(0, 40) : ""
     };
   }).filter(Boolean) : [];
