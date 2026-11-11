@@ -387,8 +387,10 @@ function renderWorkspace(info){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
     function getRequestedAspectRatio(value,fallback){
-      const match=String(value||"").match(/\b(16\s*:\s*9|9\s*:\s*16|1\s*:\s*1|4\s*:\s*3|3\s*:\s*2|2\s*:\s*3)\b/);
-      return match?match[1].replace(/\s/g,""):fallback;
+      const match=String(value||"").match(/(?:^|\b)(16|9|4|3|2|1)\s*[:=x×]\s*(16|9|4|3|2|1)(?:\b|$)/i);
+      if(!match)return fallback;
+      const ratio=match[1]+":"+match[2];
+      return ["16:9","9:16","1:1","4:3","3:2","2:3"].includes(ratio)?ratio:fallback;
     }
     function isPhotoEditRequest(value){
       const text=String(value||"").toLowerCase();
@@ -404,14 +406,16 @@ function renderWorkspace(info){
     }
     function isGeneralTopicMessage(value){
       const text=String(value||"").trim();
-      if(!text||isWebsiteRequest(text))return false;
-      const generalQuestion=/^(what|who|why|when|where|which|how|is|are|explain|teach|tell me|help me with|can you explain|can you help me with|solve|calculate|write|draft|compose|summarize|summarise|translate|compare|define|describe|give me|tell a joke|tell me a joke)\b/i.test(text);
+      if(!text)return false;
+      const topicChange=/^(new topic|change (the )?topic|switch (the )?topic|change subject|switch subject|switch to normal chat|back to normal chat|normal chat|talk about something else|another question|a different question|forget that|never mind|nevermind|cancel that|lets talk about|can we talk about|can we discuss|i want to ask about|i want to know about|i have another question|can i ask something else)\b/i.test(text);
+      if(topicChange)return true;
+      if(isWebsiteRequest(text))return false;
+      const generalQuestion=/^(what|who|why|when|where|which|how|is|are|explain|teach|tell me|tell me about|help me with|can you explain|can you help me with|can we learn|i want to learn|i want to know|solve|calculate|write|draft|compose|summarize|summarise|translate|compare|define|describe|give me|tell a joke|tell me a joke)\b/i.test(text);
       const explicitImageCreation=isImageRequest(text)&&!generalQuestion;
       const explicitPhotoEdit=isPhotoEditRequest(text)&&!generalQuestion;
       if(explicitImageCreation||explicitPhotoEdit)return false;
-      const topicChange=/^(new topic|change topic|switch topic|talk about something else|forget that|i want to learn|i need help|i have a question|lets talk about)\b/i.test(text);
-      const unrelatedSubjects=/\b(algebra|mathematics|maths?|stoichiometry|chemistry|physics|biology|photosynthesis|geography|history|literature|grammar|english homework|homework|schoolwork|programming|javascript|python|database|computer science|essay|poem|letter|email|recipe|weather|football|arsenal|free fire)\b/i.test(text);
-      return topicChange||generalQuestion||unrelatedSubjects;
+      const unrelatedSubjects=/\b(algebra|mathematics|maths?|stoichiometry|chemistry|physics|biology|photosynthesis|geography|history|literature|grammar|english homework|homework|schoolwork|programming|javascript|python|database|computer science|essay|poem|letter|email|recipe|weather|football|arsenal|free fire|economics|imports|exports|business studies|accounting|civics|politics|religion|science)\b/i.test(text);
+      return generalQuestion||unrelatedSubjects;
     }
         function cancelPendingVisualAction(){
       if(pendingGeneration){pendingGeneration.waiting?.remove();pendingGeneration=null;}
@@ -714,6 +718,22 @@ function renderWorkspace(info){
           editSession.ratio=getRequestedAspectRatio(value,editSession.ratio);
           showEditConfirmation();return;
         }
+      }
+      const typedRatio=getRequestedAspectRatio(value,"");
+      if(typedRatio&&pendingGeneration){
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        if(pendingGeneration.ratioControl)pendingGeneration.ratioControl.value=typedRatio;
+        chatInput.value="";
+        const note=document.createElement("div");note.className="reply-bubble";note.textContent="Aspect ratio set to "+typedRatio+". You can now create the image or change the topic.";
+        chatBox.appendChild(note);chatBox.scrollTop=chatBox.scrollHeight;return;
+      }
+      if(typedRatio&&pendingEdit==="confirm"&&editSession?.prompt){
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        editSession.ratio=typedRatio;chatInput.value="";showEditConfirmation();return;
+      }
+      if(typedRatio&&pendingEdit==="details"&&editSession?.prompt){
+        const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+        editSession.ratio=typedRatio;chatInput.value="";showEditConfirmation();return;
       }
       if(pendingGeneration&&isAffirmative(value)){
         const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
