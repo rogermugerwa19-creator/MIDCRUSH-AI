@@ -44,10 +44,10 @@ export async function onRequestPost({request,env}){
     tiktok:["tiktok.com"]
   };
   const requestBody={
-    query:scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:query,
+    query:scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:(type==="news"&&/\b(uneb|uganda national examinations board)\b/i.test(query)?query+" Uganda National Examinations Board Uganda latest November 2026 updates":query),
     search_depth:type==="news"?"advanced":"basic",
     chunks_per_source:2,
-    max_results:type==="news"?10:8,
+    max_results:type==="news"?20:8,
     topic:type==="news"?"news":"general",
     ...(type==="news"?{days:14}:{}),
     include_answer:true,
@@ -88,7 +88,7 @@ export async function onRequestPost({request,env}){
         return (b.score||0)-(a.score||0);
       });
       // Remove duplicate URLs and repeated headlines before the chat receives
-      // its six-source evidence limit. Keep different publishers as separate
+      // the chat evidence limit. Keep different publishers as separate
       // sources when they report the same event so claims can be cross-checked.
       const seenUrls=new Set();
       const seenTitles=new Set();
