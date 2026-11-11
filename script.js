@@ -34,7 +34,7 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or describe a website. I can ask a few questions, then build it here in the chat.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="website">Build Website · Auto choose</option><option value="website-single">Standalone HTML</option><option value="website-fullstack">Full-stack Project</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or describe a website. I can ask a few questions, then build it here in the chat.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="chat-web">AI Chat + Web Search</option><option value="website">Build Website · Auto choose</option><option value="website-single">Standalone HTML</option><option value="website-fullstack">Full-stack Project</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const chatMode=document.getElementById("chatMode");
@@ -318,7 +318,7 @@ function renderWorkspace(info){
     }
     document.getElementById("newChatButton").addEventListener("click",startNewChat);
     copyReplyButton.addEventListener("click",async()=>{if(!latestReply)return;try{await navigator.clipboard.writeText(latestReply);showToast("Reply copied.");}catch{showToast("Could not copy this reply.");}});
-    async function requestReply(value, continuation=false, imageData=""){
+    async function requestReply(value, continuation=false, imageData="", useWebSearch=false){
       if(!value||sendButton.disabled)return;
       ensureConversation();
       history.push({role:"user",content:value});
@@ -335,15 +335,60 @@ function renderWorkspace(info){
       sendButton.disabled=true;
       chatInput.disabled=true;
       try{
+        let webContext="";
+        let webSources=[];
+        let webNotice="";
+        if(useWebSearch&&!imageData){
+          waiting.textContent="Searching the web…";
+          try{
+            const researchResponse=await fetch("/api/research",{
+              method:"POST",
+              headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({query:value,type:"web"})
+            });
+            const researchData=await researchResponse.json().catch(()=>({}));
+            if(!researchResponse.ok)webNotice=researchData.error||"Web search is not available right now.";
+            else{
+              webSources=(Array.isArray(researchData.results)?researchData.results:[]).slice(0,6).map(item=>({
+                title:String(item.title||"Web source").slice(0,180),
+                url:String(item.url||""),
+                content:String(item.content||"").slice(0,800)
+              })).filter(item=>/^https?:\/\//i.test(item.url));
+              webContext=[
+                researchData.answer?"Search provider summary: "+String(researchData.answer).slice(0,1800):"",
+                ...webSources.map((item,index)=>"Source ["+(index+1)+"]: "+item.title+"\nURL: "+item.url+"\nExtract: "+item.content)
+              ].filter(Boolean).join("\n\n").slice(0,8000);
+              if(!webSources.length)webNotice="The search provider did not return usable sources.";
+            }
+          }catch{webNotice="Could not reach the web search service.";}
+        }
+        waiting.textContent=useWebSearch?"Preparing an answer…":"MIDCRUSH AI is thinking…";
         const response=await fetch("/api/chat",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({messages:history.slice(-12),image:imageData||currentImageData||undefined})
+          body:JSON.stringify({messages:history.slice(-12),image:imageData||currentImageData||undefined,webContext:webContext||undefined,webSources:webSources.length?webSources:undefined})
         });
         const data=await response.json().catch(()=>({}));
         if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
         const answer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
         waiting.textContent=answer;
+        if(Array.isArray(data.sources)&&data.sources.length){
+          const sourceBox=document.createElement("div");sourceBox.className="chat-web-sources";
+          const sourceTitle=document.createElement("strong");sourceTitle.textContent="Web sources";sourceBox.appendChild(sourceTitle);
+          data.sources.slice(0,6).forEach((source,index)=>{
+            try{
+              const url=new URL(source.url);
+              if(url.protocol!=="https:"&&url.protocol!=="http:")return;
+              const link=document.createElement("a");link.href=url.toString();link.target="_blank";link.rel="noopener noreferrer";
+              link.textContent="["+(index+1)+"] "+String(source.title||url.hostname).slice(0,120);sourceBox.appendChild(link);
+            }catch{}
+          });
+          waiting.appendChild(sourceBox);
+        }else if(useWebSearch){
+          const note=document.createElement("small");note.className="chat-web-note";
+          note.textContent=webNotice?"Web search was unavailable: "+webNotice:"No web sources were attached to this answer.";
+          waiting.appendChild(note);
+        }
         latestReply=continuation&&latestReply?latestReply+"\n\n"+answer:answer;
         copyReplyButton.disabled=false;
         history.push({role:"assistant",content:answer});
@@ -379,8 +424,8 @@ function renderWorkspace(info){
     });
     chatMode.addEventListener("change",()=>{
       const websiteMode=chatMode.value.startsWith("website");
-      chatInput.placeholder=websiteMode?"Describe the website or application you want to build...":chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";
-      if(chatMode.value==="chat"){
+      chatInput.placeholder=websiteMode?"Describe the website or application you want to build...":chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":chatMode.value==="chat-web"?"Ask a question and search the web...":"Message MIDCRUSH AI...";
+      if(chatMode.value==="chat"||chatMode.value==="chat-web"){
         cancelPendingVisualAction();
         if(websiteSessionActive){websiteSessionActive=false;persistCurrentConversation();}
       }
@@ -403,6 +448,10 @@ function renderWorkspace(info){
       const text=String(value||"").trim();
       return /^(what|who|where|when|why|how|is|are|read|describe|identify|explain|translate|solve|answer|recognize|recognise|count|compare|summarize|summarise|transcribe|extract)\b/i.test(text)
         || /\b(read the text|what is shown|what's shown|identify this|describe this|what does .* say|translate the text)\b/i.test(text);
+    }
+    function shouldSearchWeb(value){
+      const text=String(value||"").trim();
+      return /\b(search (the )?(web|internet)|look (this|it|that) up|find online|browse (the )?web|on the internet|on the web|latest|most recent|current|today|yesterday|this week|news|price|prices|release date|new version|official documentation|source for|fact.?check)\b/i.test(text);
     }
     function isGeneralTopicMessage(value){
       const text=String(value||"").trim();
@@ -695,7 +744,8 @@ function renderWorkspace(info){
       let mode=chatMode.value;
       if(isGeneralTopicMessage(value)){
         cancelPendingVisualAction();
-        if(mode!=="chat"){
+        const keepWebMode=mode==="chat-web";
+        if(mode!=="chat"&&!keepWebMode){
           chatMode.value="chat";
           mode="chat";
           chatInput.placeholder="Message MIDCRUSH AI...";
@@ -703,7 +753,7 @@ function renderWorkspace(info){
         const imageToAsk=attachedImageData||(currentImageData&&isImageQuestion(value)?currentImageData:"");
         if(attachedImageData){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
         chatInput.value="";
-        requestReply(value,false,imageToAsk);
+        requestReply(value,false,imageToAsk,keepWebMode||shouldSearchWeb(value));
         return;
       }
       if(pendingEdit==="confirm"){
@@ -789,7 +839,7 @@ function renderWorkspace(info){
       const imageToAsk=attachedImageData||(currentImageData&&isImageQuestion(value)?currentImageData:"");
       chatInput.value="";
       if(imageToAsk){attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();}
-      requestReply(value,false,imageToAsk);
+      requestReply(value,false,imageToAsk,mode==="chat-web"||shouldSearchWeb(value));
     });
     conversations=readConversations();
     conversations.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
