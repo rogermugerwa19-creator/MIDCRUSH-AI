@@ -197,3 +197,73 @@
   .project-file-code{min-height:320px}
   .multi-file-project .chat-website-artifact-heading{align-items:flex-start;flex-direction:column}
 }
+
+
+/* Learn Programming workspace */
+.tool-learn .tool-icon{background:linear-gradient(135deg,#245d80,#6548a8);color:#d9f3ff}
+.learn-workspace{max-width:1000px;padding:22px}
+.learn-intro{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:5px 2px 22px}
+.learn-kicker{font-size:9px;letter-spacing:.16em;font-weight:800;color:#a995ff}
+.learn-intro h2{margin:9px 0 7px;color:#f1edff;font:600 clamp(20px,3vw,27px) var(--display);letter-spacing:-.035em}
+.learn-intro p{max-width:650px;margin:0;color:#a8a8c0;font-size:11px;line-height:1.7}
+.learn-hero-icon{width:58px;height:58px;flex:0 0 58px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,#7357d633,#31b7d422);border:1px solid #8d79d544;color:#c4b5ff}
+.learn-hero-icon svg{width:27px;height:27px}
+.learn-course-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.learn-course-settings label,.learn-goal-label{display:grid;gap:6px;color:#c8c5dd;font-size:10px;font-weight:700}
+.learn-course-settings select,.learn-goal-input,.learn-compose textarea,.learn-compose select{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;background:#101124;color:#f0efff;padding:11px 12px;outline:none;font:11px var(--font)}
+.learn-course-settings select:focus,.learn-goal-input:focus,.learn-compose textarea:focus,.learn-compose select:focus{border-color:#9277ed}
+.learn-goal-label{display:flex;align-items:center;gap:7px;margin:13px 0 6px}
+.learn-goal-label span{color:#8e8ba7;font-weight:500}
+.learn-goal-input{margin-bottom:13px}
+.learn-progress-card{padding:12px 13px;border:1px solid #383451;border-radius:11px;background:#111224}
+.learn-progress-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.learn-progress-top>div{display:grid;gap:4px}
+.learn-progress-top strong{font-size:10px;color:#eeeaff}
+.learn-progress-top span{font-size:9px;color:#9b98b3}
+.learn-progress-top button{border:1px solid #5a4c86;border-radius:8px;background:#292142;padding:8px 10px;color:#d9ceff;font:600 9px var(--font);cursor:pointer}
+.learn-progress-top button:disabled{opacity:.4;cursor:not-allowed}
+.learn-progress-track{height:6px;border-radius:10px;background:#28263a;overflow:hidden}
+.learn-progress-track span{display:block;width:0;height:100%;border-radius:10px;background:linear-gradient(90deg,#7659df,#39b8cd);transition:width .25s ease}
+.learn-actions{display:flex;flex-wrap:wrap;gap:8px;margin:13px 0}
+.learn-actions button,.learn-compose button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #45405f;border-radius:9px;background:#1a1a30;color:#dcd8f3;padding:9px 12px;font:600 10px var(--font);cursor:pointer}
+.learn-actions button svg{width:13px;height:13px}
+.learn-actions button:hover,.learn-compose button:hover{border-color:#8873d0;color:#fff}
+.learn-actions .learn-primary-action{border:0;background:linear-gradient(120deg,#7956dc,#4c79e8);color:white}
+.learn-chat-box{min-height:260px;max-height:560px;overflow:auto;display:flex;flex-direction:column;gap:11px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#101124}
+.learn-welcome{max-width:560px;color:#c9c7dc;font-size:11px;line-height:1.7}
+.learn-welcome strong{color:#f1edff;font-size:13px}
+.learn-welcome p{margin:5px 0 0}
+.learn-user-message,.learn-tutor-message{max-width:90%;padding:11px 13px;border-radius:12px;font-size:11px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.learn-user-message{align-self:flex-end;background:#40316f;color:#fff;border-radius:12px 12px 3px 12px}
+.learn-tutor-message{align-self:flex-start;width:min(100%,760px);background:#1a1b31;color:#d2d0e3;border:1px solid #ffffff0d;border-radius:12px 12px 12px 3px}
+.learn-tutor-reply{white-space:pre-wrap;overflow-wrap:anywhere}
+.learn-thinking{opacity:.72}
+.learn-code-card,.learn-exercise-card,.learn-feedback{margin-top:11px;padding:11px;border:1px solid #3b3655;border-radius:9px;background:#101020}
+.learn-code-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;color:#dcd7f5;font-size:9px}
+.learn-code-heading button,.learn-exercise-card button{border:1px solid #5e508b;border-radius:7px;background:#292142;color:#e5dcff;padding:6px 9px;font:600 9px var(--font);cursor:pointer}
+.learn-code-card pre,.learn-exercise-card pre{max-width:100%;overflow:auto;margin:9px 0;padding:11px;border-radius:7px;background:#090b16;color:#e5e9ff;font:10px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre}
+.learn-code-card p,.learn-exercise-card p{margin:8px 0 0;color:#aaa7c0;font-size:10px;line-height:1.6;white-space:pre-wrap}
+.learn-exercise-card>strong{color:#f0ebff;font-size:10px}
+.learn-exercise-card button{margin-top:10px}
+.learn-feedback{color:#c9e7d4;border-color:#365846;background:#13221e}
+.learn-suggested-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.learn-suggested-actions button{border:1px solid #4a426a;border-radius:999px;background:#211d39;color:#c9c2e5;padding:6px 9px;font:600 9px var(--font);cursor:pointer}
+.learn-suggested-actions button:hover{border-color:#907be2;color:#fff}
+.learn-compose{display:grid;grid-template-columns:165px minmax(0,1fr) 70px;gap:8px;margin-top:11px;align-items:stretch}
+.learn-compose select{align-self:stretch}
+.learn-compose textarea{resize:vertical;min-height:48px;max-height:180px;line-height:1.5}
+.learn-compose button{border:0;background:linear-gradient(120deg,#7956dc,#4c79e8);color:white}
+.learn-compose button:disabled{opacity:.5;cursor:wait}
+.learn-footnote{margin-top:10px;color:#85829e;font-size:9px;line-height:1.6}
+@media(max-width:620px){
+  .learn-workspace{padding:13px}
+  .learn-intro{align-items:flex-start;padding-bottom:16px}
+  .learn-hero-icon{width:43px;height:43px;flex-basis:43px;border-radius:13px}
+  .learn-hero-icon svg{width:21px;height:21px}
+  .learn-course-settings{grid-template-columns:1fr}
+  .learn-progress-top{align-items:flex-start;flex-direction:column}
+  .learn-compose{grid-template-columns:1fr 70px}
+  .learn-compose select{grid-column:1/-1}
+  .learn-chat-box{padding:10px;min-height:220px}
+  .learn-user-message,.learn-tutor-message{max-width:98%}
+}
