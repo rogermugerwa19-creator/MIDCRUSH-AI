@@ -305,6 +305,7 @@ function renderWorkspace(info){
       if(websitePreviewUrl){URL.revokeObjectURL(websitePreviewUrl);websitePreviewUrl="";}
       chatMode.value="chat";chatInput.placeholder="Message MIDCRUSH AI...";
       pendingEdit=null;pendingEditCard=null;pendingGeneration=null;editSession=null;
+      ensureConversation();
       renderHistory();
       renderRecentChats();
       chatInput.focus();
@@ -790,13 +791,8 @@ function renderWorkspace(info){
       requestReply(value,false,imageToAsk);
     });
     conversations=readConversations();
-    if(conversations.length){
-      conversations.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-      loadConversation(conversations[0].id);
-    }else{
-      renderHistory();
-      renderRecentChats();
-    }
+    conversations.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+    startNewChat();
   }else if(info.kind==="learn"){
     target.innerHTML = `
       <div class="workspace-card learn-workspace">
