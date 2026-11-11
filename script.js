@@ -8,6 +8,7 @@ const toolInfo = {
   documents:{title:"Documents",kicker:"PLAN & ORGANISE",description:"Create and refine letters, reports, notes and more.",icon:"file-text"},
   music:{title:"AI Music",kicker:"CREATE YOUR SOUND",description:"Explore music ideas, styles and audio creation.",icon:"music-2"},
   website:{title:"Website Builder",kicker:"DESIGN & LAUNCH",description:"Generate, preview and download complete websites from a description.",icon:"panels-top-left",kind:"website"},
+  internet:{title:"Internet & Connections",kicker:"EXPLORE & CONNECT",description:"Search public websites and explore secure platform integrations.",icon:"globe",kind:"internet"},
   editing:{title:"Photo Editing",kicker:"REFINE & REMIX",description:"Explore creative edits and image improvements.",icon:"wand-sparkles"}
 };
 const sidebar=document.getElementById("sidebar");
@@ -985,6 +986,8 @@ function renderWorkspace(info){
     learnLevel.addEventListener("change",loadLearnSession);
     learnGoal.addEventListener("change",saveLearnState);
     loadLearnSession();
+  }else if(info.kind==="internet"){
+    renderInternetWorkspace(target);
   }else if(info.kind==="image"){
     target.innerHTML='<div class="workspace-card image-workspace"><div class="workspace-label">Create an image from your imagination</div><p class="image-intro">Describe what you want to see. Choose a style, then generate your image.</p><form id="imageForm" class="image-form"><label for="imagePrompt">Image description</label><textarea id="imagePrompt" maxlength="1800" rows="4" placeholder="Example: A small African village at sunset, warm golden light, green hills, detailed scenery..." required></textarea><div class="image-form-bottom"><div class="image-style-field"><label for="imageStyle">Art style</label><select id="imageStyle"><option value="photorealistic, realistic photography">Photorealistic</option><option value="high-quality 3D animated render">3D animation</option><option value="anime illustration">Anime</option><option value="detailed digital artwork">Digital art</option><option value="cinematic concept art">Cinematic</option><option value="soft watercolor painting">Watercolor</option><option value="high-detail fantasy concept art">Fantasy</option><option value="retro futuristic synthwave artwork">Synthwave</option><option value="minimalist vector illustration">Minimalist</option><option value="comic book illustration with bold ink lines">Comic book</option><option value="traditional oil painting with rich brushstrokes">Oil painting</option><option value="pixel art with crisp pixel detail">Pixel art</option><option value="architectural visualization, realistic materials">Architectural render</option><option value="surreal dreamlike fine art">Surreal</option></select></div><div class="image-style-field"><label for="imageRatio">Aspect ratio</label><select id="imageRatio"><option value="1:1">Square post — 1:1</option><option value="16:9">YouTube / Landscape — 16:9</option><option value="9:16">Phone / TikTok / Status — 9:16</option><option value="4:3">Classic photo — 4:3</option><option value="3:2">Photo landscape — 3:2</option><option value="2:3">Photo portrait — 2:3</option></select></div><button type="submit" class="image-generate-button" id="imageGenerateButton"><i data-lucide="sparkles"></i> Generate image</button></div></form><div class="image-status" id="imageStatus" role="status" aria-live="polite">Your generated image will appear here.</div><div class="image-result" id="imageResult" hidden><img id="generatedImage" alt="AI-generated image"><div class="image-result-actions"><a id="downloadImageButton" class="image-download-button" download="midcrush-ai-image.jpg"><i data-lucide="download"></i> Save image</a><button type="button" id="regenerateImageButton" class="image-regenerate-button"><i data-lucide="refresh-cw"></i> Generate again</button><span class="image-model-label">Generated with FLUX.2 Klein 9B</span></div></div><div class="image-note">Cloudflare Workers AI includes a limited free daily allowance. Image generation may stop when the daily allowance is used up.</div></div>';
     const imageForm=document.getElementById("imageForm");
@@ -1220,6 +1223,125 @@ function renderWorkspace(info){
     target.innerHTML='<div class="coming-panel"><div><div class="coming-icon"><i data-lucide="'+info.icon+'"></i></div><h2>Something exciting is coming.</h2><p>This workspace is part of the MIDCRUSH AI toolkit. We\'ll connect the right service and add its working features in a future development stage.</p><span class="coming-label">IN DEVELOPMENT</span></div></div>';
   }
 }
+
+function renderInternetWorkspace(target){
+  const providers=[
+    {name:"Google Workspace",detail:"Gmail, Drive, Calendar, Docs and Sheets",group:"Work & storage",url:"https://developers.google.com/identity/protocols/oauth2/"},
+    {name:"YouTube",detail:"Public channel data and authorised account tools",group:"Media",url:"https://developers.google.com/youtube/v3"},
+    {name:"Microsoft 365",detail:"Outlook, OneDrive, Calendar and Teams",group:"Work & storage",url:"https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow"},
+    {name:"GitHub",detail:"Repositories, issues, pull requests and account data",group:"Developer tools",url:"https://docs.github.com/en/apps/oauth-apps/building-oauth-apps"},
+    {name:"Facebook & Instagram",detail:"Pages and professional accounts where approved",group:"Social platforms",url:"https://developers.facebook.com/docs/"},
+    {name:"TikTok",detail:"Authorised profile and content integrations where approved",group:"Social platforms",url:"https://developers.tiktok.com/"},
+    {name:"Discord",detail:"Authorised servers, bots and account permissions",group:"Community",url:"https://discord.com/developers/docs/topics/oauth2"},
+    {name:"Slack",detail:"Workspace apps and approved permission scopes",group:"Work & community",url:"https://api.slack.com/authentication/oauth-v2"},
+    {name:"Notion",detail:"Pages, databases and workspace content",group:"Work & storage",url:"https://developers.notion.com/docs/authorization"},
+    {name:"Dropbox",detail:"Files and folders you authorise",group:"Work & storage",url:"https://developers.dropbox.com/oauth-guide"},
+    {name:"Spotify",detail:"Public music data and permitted playlist features",group:"Media",url:"https://developer.spotify.com/documentation/web-api/concepts/authorization"},
+    {name:"Telegram",detail:"Bots and channels through the official Bot API",group:"Community",url:"https://core.telegram.org/bots/api"},
+    {name:"Canva",detail:"Design workflows through approved developer products",group:"Creative tools",url:"https://www.canva.dev/docs/"},
+    {name:"Trello",detail:"Boards, cards and project workflows",group:"Work & planning",url:"https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/"},
+    {name:"Figma",detail:"Design files, comments and authorised team data",group:"Creative tools",url:"https://developers.figma.com/docs/"},
+    {name:"Shopify",detail:"Store data through approved admin permissions",group:"Business tools",url:"https://shopify.dev/docs/apps/build/authentication-authorization"},
+    {name:"GitLab",detail:"Projects, issues and merge requests",group:"Developer tools",url:"https://docs.gitlab.com/"},
+    {name:"WordPress",detail:"Posts, pages and site management through REST API",group:"Publishing",url:"https://developer.wordpress.org/rest-api/"}
+  ];
+  target.innerHTML =
+    "<div class='workspace-card internet-workspace'>"+
+    "<div class='internet-hero'><div><span class='internet-kicker'>WEB RESEARCH &amp; PLATFORM HUB</span><h2>Explore beyond MIDCRUSH AI.</h2><p>Search public information across the web, look for news and images, and prepare secure connections to the services you use.</p></div><div class='internet-hero-icon'><i data-lucide='globe'></i></div></div>"+
+    "<section class='internet-search-panel'><div class='internet-section-heading'><div><strong>Search the internet</strong><span>Public websites and indexed pages. Private account data needs a separate authorised connection.</span></div><span class='internet-provider-tag'>TAVILY SEARCH</span></div>"+
+    "<form id='internetSearchForm' class='internet-search-form'><input id='internetQuery' maxlength='240' placeholder='Search websites, topics, tutorials, public pages...' autocomplete='off' required><button type='submit' id='internetSearchButton'><i data-lucide='search'></i> Search</button></form>"+
+    "<div class='internet-search-controls'><div class='internet-search-tabs' role='group' aria-label='Search type'><button type='button' class='active' data-search-type='web'>Web</button><button type='button' data-search-type='news'>News</button><button type='button' data-search-type='images'>Images</button></div>"+
+    "<label>Search within<select id='internetScope'><option value=''>The whole indexed web</option><option value='youtube'>YouTube</option><option value='github'>GitHub</option><option value='reddit'>Reddit</option><option value='stackoverflow'>Stack Overflow</option><option value='docs'>Official documentation</option><option value='tiktok'>Public TikTok pages</option></select></label></div>"+
+    "<div id='internetSearchStatus' class='internet-search-status' role='status' aria-live='polite'>Search results will appear here. Safe Search is enabled.</div><div id='internetSearchAnswer' class='internet-search-answer' hidden></div><div id='internetImageResults' class='internet-image-results' hidden></div><div id='internetSearchResults' class='internet-search-results'></div>"+
+    "<div class='internet-search-footnote'>Search uses the configured Tavily API key on the server. Never paste passwords, private messages or secret keys into search.</div></section>"+
+    "<section class='internet-connections-panel'><div class='internet-section-heading'><div><strong>Platform integrations</strong><span>Explore official developer setup for platforms you may want to connect.</span></div><span class='internet-count'>"+providers.length+" PLATFORMS</span></div>"+
+    "<div class='internet-connection-notice'><i data-lucide='shield-check'></i><div><strong>Private connections need secure setup</strong><p>Each service requires its own developer app, approved permissions and OAuth sign-in. MIDCRUSH AI also needs secure server-side token storage before account connections can be enabled. Passwords and access tokens must never be stored in browser storage.</p></div></div>"+
+    "<div class='internet-provider-filters'><button type='button' class='active' data-provider-filter='All'>All</button><button type='button' data-provider-filter='Work & storage'>Work &amp; storage</button><button type='button' data-provider-filter='Developer tools'>Developer tools</button><button type='button' data-provider-filter='Social platforms'>Social platforms</button><button type='button' data-provider-filter='Media'>Media</button><button type='button' data-provider-filter='Community'>Community</button><button type='button' data-provider-filter='Creative tools'>Creative tools</button><button type='button' data-provider-filter='Work & planning'>Work &amp; planning</button><button type='button' data-provider-filter='Publishing'>Publishing</button><button type='button' data-provider-filter='Business tools'>Business tools</button></div>"+
+    "<div class='internet-provider-grid' id='internetProviderGrid'></div></section>"+
+    "<div class='internet-footer-note'>A platform appearing here does not mean its API is open to every feature or account. Some providers review apps, restrict permissions or require account eligibility. Use only permissions you understand and are allowed to grant.</div></div>";
+
+  const searchForm=document.getElementById("internetSearchForm");
+  const searchInput=document.getElementById("internetQuery");
+  const searchButton=document.getElementById("internetSearchButton");
+  const searchStatus=document.getElementById("internetSearchStatus");
+  const answerBox=document.getElementById("internetSearchAnswer");
+  const resultsBox=document.getElementById("internetSearchResults");
+  const imagesBox=document.getElementById("internetImageResults");
+  const scopeSelect=document.getElementById("internetScope");
+  let searchType="web",providerFilter="All";
+  function safeLink(parent,url,label,className){
+    const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=label;
+    if(className)link.className=className;parent.appendChild(link);return link;
+  }
+  function renderProviderCards(){
+    const grid=document.getElementById("internetProviderGrid");grid.replaceChildren();
+    providers.filter(p=>providerFilter==="All"||p.group===providerFilter).forEach(provider=>{
+      const card=document.createElement("article");card.className="internet-provider-card";
+      const top=document.createElement("div");top.className="internet-provider-top";
+      const icon=document.createElement("span");icon.className="internet-provider-icon";icon.textContent=provider.name.slice(0,1);
+      const status=document.createElement("span");status.className="internet-provider-status";status.textContent="Setup required";top.append(icon,status);
+      const title=document.createElement("strong");title.textContent=provider.name;
+      const detail=document.createElement("p");detail.textContent=provider.detail;
+      const group=document.createElement("small");group.textContent=provider.group;
+      const link=safeLink(card,provider.url,"Open developer docs","internet-provider-link");
+      card.append(top,title,detail,group,link);grid.appendChild(card);
+    });
+  }
+  document.querySelectorAll("[data-provider-filter]").forEach(button=>button.addEventListener("click",()=>{
+    providerFilter=button.dataset.providerFilter||"All";
+    document.querySelectorAll("[data-provider-filter]").forEach(item=>item.classList.toggle("active",item===button));
+    renderProviderCards();
+  }));
+  document.querySelectorAll("[data-search-type]").forEach(button=>button.addEventListener("click",()=>{
+    searchType=button.dataset.searchType||"web";
+    document.querySelectorAll("[data-search-type]").forEach(item=>item.classList.toggle("active",item===button));
+    searchStatus.textContent=searchType==="news"?"Search recent news sources.":searchType==="images"?"Search web pages and related images.":"Search public pages across the web.";
+  }));
+  function renderSearchData(data){
+    answerBox.hidden=!data.answer;answerBox.replaceChildren();
+    if(data.answer){const label=document.createElement("strong");label.textContent="Search summary";const paragraph=document.createElement("p");paragraph.textContent=data.answer;answerBox.append(label,paragraph);}
+    imagesBox.replaceChildren();
+    const images=Array.isArray(data.images)?data.images:[];
+    if(images.length){
+      imagesBox.hidden=false;
+      images.forEach(item=>{
+        const card=document.createElement("article");card.className="internet-image-card";
+        const img=document.createElement("img");img.src=item.url;img.alt=item.description||"Search result image";img.loading="lazy";img.referrerPolicy="no-referrer";card.appendChild(img);
+        if(item.description){const desc=document.createElement("p");desc.textContent=item.description;card.appendChild(desc);}
+        safeLink(card,item.url,"Open image");imagesBox.appendChild(card);
+      });
+    }else imagesBox.hidden=true;
+    resultsBox.replaceChildren();
+    const results=Array.isArray(data.results)?data.results:[];
+    if(!results.length){const empty=document.createElement("p");empty.className="internet-empty-results";empty.textContent="No public results were returned for this search.";resultsBox.appendChild(empty);return;}
+    results.forEach((item,index)=>{
+      const card=document.createElement("article");card.className="internet-result-card";
+      const meta=document.createElement("div");meta.className="internet-result-meta";
+      if(item.favicon){const icon=document.createElement("img");icon.src=item.favicon;icon.alt="";icon.loading="lazy";meta.appendChild(icon);}
+      const host=document.createElement("span");try{host.textContent=new URL(item.url).hostname;}catch{host.textContent="Web result";}
+      if(item.publishedDate){const date=document.createElement("span");date.textContent=item.publishedDate;meta.appendChild(date);}meta.appendChild(host);
+      safeLink(card,item.url,item.title,"internet-result-title");
+      const content=document.createElement("p");content.textContent=item.content||"Open the source to read more.";
+      const bottom=document.createElement("div");bottom.className="internet-result-bottom";bottom.textContent="Source "+(index+1);
+      card.append(meta,content,bottom);resultsBox.appendChild(card);
+    });
+  }
+  searchForm.addEventListener("submit",async event=>{
+    event.preventDefault();const query=searchInput.value.trim();if(!query)return;
+    searchButton.disabled=true;searchButton.textContent="Searching…";searchStatus.textContent="Searching public websites…";
+    answerBox.hidden=true;imagesBox.hidden=true;resultsBox.replaceChildren();
+    try{
+      const response=await fetch("/api/research",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query,type:searchType,scope:scopeSelect.value})});
+      const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"Search could not be completed.");
+      renderSearchData(data);
+      const credits=data.usage?.credits;
+      searchStatus.textContent="Found "+(data.results?.length||0)+" sources"+(Number.isFinite(credits)?" · "+credits+" search credit(s) used":"")+" · Safe Search on";
+    }catch(error){searchStatus.textContent=error.message||"Search is temporarily unavailable.";}
+    finally{searchButton.disabled=false;searchButton.innerHTML="<i data-lucide='search'></i> Search";if(window.lucide)lucide.createIcons();}
+  });
+  renderProviderCards();
+}
+
 document.addEventListener("click",e=>{const button=e.target.closest("[data-page]");if(button){e.preventDefault();navigate(button.dataset.page);if(button.classList.contains("new-chat"))document.getElementById("newChatButton")?.click();}});
 document.getElementById("menuToggle").addEventListener("click",()=>sidebar.classList.toggle("open"));
 document.addEventListener("click",e=>{if(window.innerWidth<=760&&sidebar.classList.contains("open")&&!sidebar.contains(e.target)&&!e.target.closest("#menuToggle"))sidebar.classList.remove("open")});
