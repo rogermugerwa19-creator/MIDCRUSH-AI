@@ -39,7 +39,7 @@ function normalizeProject(raw,prompt){
     if(!item||typeof item.path!=="string"||typeof item.content!=="string")continue;
     const path=item.path.trim().replace(/\\/g,"/").replace(/^\.\/+/, "");
     const parts=path.split("/");
-    if(!path||path.startsWith("/")||parts.some(part=>!part||part==="."||part==="..")||/[\\u0000-\\u001f<>:"|?*]/.test(path)||parts[0]===".git"||seen.has(path))continue;
+    if(!path||path.startsWith("/")||parts.some(part=>!part||part==="."||part==="..")||path.split("").some(ch=>ch.charCodeAt(0)<32||'<>:"|?*\\\\'.includes(ch))||parts[0]===".git"||seen.has(path))continue;
     if(item.content.length>50000||total+item.content.length>180000)continue;
     seen.add(path);total+=item.content.length;files.push({path,content:item.content});
   }
@@ -49,7 +49,25 @@ function normalizeProject(raw,prompt){
   const name=clean(project.name,"midcrush-project",64).toLowerCase().replace(/[^a-z0-9-]+/g,"-").replace(/^-+|-+$/g,"")||"midcrush-project";
   const description=clean(project.description,prompt,360);
   if(!seen.has("README.md")){
-    const readme="# "+clean(project.name,"Project",80)+"\\n\\n"+description+"\\n\\n## Technology stack\\n"+(stack.length?stack.map(x=>"- "+x).join("\\n"):"- See package and configuration files")+"\\n\\n## Setup\\n"+(setup.length?setup.map((x,i)=>(i+1)+". "+x).join("\\n"):"1. Review configuration and environment example files.\\n2. Install the dependencies listed by the project.\\n3. Configure required environment variables.\\n4. Run the development command shown in the project manifest.")+"\\n\\n## Important\\nReview external services and environment variables before deployment. No secrets or live service accounts are included.";
+    const readme=[
+      "# "+clean(project.name,"Project",80),
+      "",
+      description,
+      "",
+      "## Technology stack",
+      ...(stack.length?stack.map(x=>"- "+x):["- See package and configuration files"]),
+      "",
+      "## Setup",
+      ...(setup.length?setup.map((x,i)=>(i+1)+". "+x):[
+        "1. Review configuration and environment example files.",
+        "2. Install the dependencies listed by the project.",
+        "3. Configure required environment variables.",
+        "4. Run the development command shown in the project manifest."
+      ]),
+      "",
+      "## Important",
+      "Review external services and environment variables before deployment. No secrets or live service accounts are included."
+    ].join("\n");
     files.push({path:"README.md",content:readme});
   }
   return {name,description,stack,setupInstructions:setup,files};
