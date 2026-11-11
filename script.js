@@ -96,7 +96,7 @@ function renderWorkspace(info){
         remove.textContent="×";
         remove.addEventListener("click",()=>{
           conversations=conversations.filter(c=>c.id!==conversation.id);
-          if(currentChatId===conversation.id){currentChatId=null;history=[];latestReply="";currentImageData="";attachedImageData="";editSession=null;renderHistory();copyReplyButton.disabled=true;}
+          if(currentChatId===conversation.id){currentChatId=null;history=[];latestReply="";currentImageData="";attachedImageData="";editSession=null;websiteSessionActive=false;websiteMessages=[];websiteSiteData=null;websiteHtml="";if(websitePreviewUrl){URL.revokeObjectURL(websitePreviewUrl);websitePreviewUrl="";}chatMode.value="chat";chatInput.placeholder="Message MIDCRUSH AI...";renderHistory();copyReplyButton.disabled=true;}
           saveConversations();
         });
         item.append(open,remove);
@@ -145,6 +145,7 @@ function renderWorkspace(info){
       const conversation=conversations.find(c=>c.id===id);
       if(!conversation)return;
       currentChatId=id;
+      if(websitePreviewUrl){URL.revokeObjectURL(websitePreviewUrl);websitePreviewUrl="";}
       currentImageData=typeof conversation.imageData==="string"?conversation.imageData:"";
       attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
       editSession=null;pendingEdit=null;pendingEditCard=null;
@@ -454,8 +455,9 @@ function renderWorkspace(info){
     }
     function isWebsiteRequest(value){
       const text=String(value||"").trim();
-      return /\b(build|create|make|design|generate|develop|code|i need|i want|help me)\b/i.test(text)
-        && /\b(website|web site|webpage|web page|landing page|online store|e-?commerce site)\b/i.test(text);
+      if(/^(how|what|why|when|where|which)\\b/i.test(text)||/^(can you explain|tell me how)\\b/i.test(text))return false;
+      return /\\b(build|create|make|design|generate|develop|code|i need|i want|help me)\\b/i.test(text)
+        && /\\b(website|web site|webpage|web page|landing page|online store|e-?commerce site)\\b/i.test(text);
     }
     async function requestWebsiteChat(value){
       ensureConversation();
