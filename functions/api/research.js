@@ -64,8 +64,8 @@ export async function onRequestPost({request,env}){
   try{
     const searchQueries=isUnebNews?[
       query+" Uganda UNEB latest UACE examination news "+kampalaDate,
-      "Uganda UNEB PLE examination malpractice arrests latest November 2026",
-      "Uganda UNEB UACE examinations updates candidates latest November 2026"
+      "Uganda UNEB PLE examination malpractice arrests latest "+new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Kampala",month:"long",year:"numeric"}).format(new Date()),
+      "Uganda UNEB UACE examinations updates candidates latest "+new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Kampala",month:"long",year:"numeric"}).format(new Date())
     ]:[scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:query];
     const responses=await Promise.all(searchQueries.map(searchQuery=>fetch("https://api.tavily.com/search",{
       method:"POST",
@@ -113,11 +113,11 @@ export async function onRequestPost({request,env}){
         let host="";
         try{host=new URL(item.url).hostname.toLowerCase();}catch{}
         if(/(^|\.)tiktok\.com$/.test(host)&&/\/discover\//i.test(item.url))continue;
-        if(isUnebNews&&/(^|\\.)(youtube\\.com|youtu\\.be|x\\.com|twitter\\.com|t\\.co|facebook\\.com|instagram\\.com|teapawt\\.org|sotwe\\.com|xitter\\.cf)$/.test(host))continue;
+        if(isUnebNews&&/(^|\.)(youtube\.com|youtu\.be|x\.com|twitter\.com|t\.co|facebook\.com|instagram\.com|teapawt\.org|sotwe\.com|xitter\.cf)$/.test(host))continue;
         if(isUnebNews){
           const titleText=item.title.toLowerCase();
           // Keep actual news headlines; discard radio programme pages and generic directory/listing pages.
-          if(!/\\b(uneb|uace|uce|ple|examinations?|exams?|malpractice|candidates?|school|teacher|arrests?|scouts?|exam papers?)\\b/.test(titleText))continue;
+          if(!/\b(uneb|uace|uce|ple|examinations?|exams?|malpractice|candidates?|school|teacher|arrests?|scouts?|exam papers?)\b/.test(titleText))continue;
           const evidence=(item.title+" "+item.content).toLowerCase();
           if(!/\b(uneb|uganda national examinations board|uace|uce|ple)\b/.test(evidence))continue;
           const titleTerms=item.title.toLowerCase().match(/[a-z0-9]{4,}/g)||[];
