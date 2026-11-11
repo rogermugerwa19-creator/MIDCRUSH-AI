@@ -144,9 +144,10 @@ export async function onRequestPost({request,env}){
       let system=CHAT_BUILDER_SYSTEM_PROMPT+"\\n\\nRequested output preference: "+projectPreference+". Choose the appropriate architecture and obey an explicit preference.";
       if(current)system+="\\n\\nCURRENT SINGLE-PAGE SITE DATA (reference only): "+JSON.stringify(current);
       if(currentProject)system+="\\n\\nCURRENT MULTI-FILE PROJECT (preserve existing files and update only requested parts): "+JSON.stringify(currentProject);
+      const needsFullProject=projectPreference==="multi-file"||cleanMessages.some(message=>/\b(full.?stack|multi.?file|backend|database|api|authentication|login|sign.?up|file uploads?|video uploads?|payments?|server.?side|mobile app)\b/i.test(message.content));
       const result=await env.AI.run("@cf/zai-org/glm-4.7-flash",{
         messages:[{role:"system",content:system},...cleanMessages],
-        max_completion_tokens:projectPreference==="multi-file"?9000:6500,
+        max_completion_tokens:needsFullProject?9000:4500,
         chat_template_kwargs:{enable_thinking:false},temperature:0.25
       });
       const raw=parseJson(readText(result));if(!raw)return json({error:"The AI could not understand the website request. Please try again."},502);
