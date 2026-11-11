@@ -146,3 +146,16 @@
 .website-chat-suggestions button{background:#171a2d;border:1px solid var(--line);border-radius:999px;padding:7px 10px;color:#b9b5d2;font-size:9px;cursor:pointer}
 .website-chat-suggestions button:hover{border-color:#9277ed;color:#fff}
 @media(max-width:620px){.website-chat-form{align-items:stretch;flex-direction:column}.website-chat-form button{width:100%;min-height:42px}.website-chat-message{max-width:96%}}
+
+
+/* Website building directly inside AI Chat */
+.chat-website-artifact{width:100%;max-width:100%;align-self:stretch;padding:12px;border:1px solid #514477;border-radius:13px;background:#15172b;overflow:hidden}
+.chat-website-artifact-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.chat-website-artifact-heading strong{font-size:12px;color:#f2edff}
+.chat-website-artifact-heading span{font-size:10px;color:#aaa4c4}
+.chat-website-artifact-actions{display:flex;gap:8px;margin-bottom:10px}
+.chat-website-artifact-actions button{border:1px solid #4a426a;background:#211d39;color:#e6e0ff;border-radius:8px;padding:8px 11px;font:600 10px var(--font);cursor:pointer}
+.chat-website-artifact-actions button:first-child{background:linear-gradient(120deg,#7956dc,#4c79e8);border:0;color:white}
+.chat-website-preview{display:block;width:100%;height:560px;border:1px solid #34314a;border-radius:9px;background:white}
+.chat-website-artifact p{font-size:10px;line-height:1.5;color:#9895b3;margin:9px 0 0}
+@media(max-width:620px){.chat-website-artifact{padding:9px}.chat-website-preview{height:480px}.chat-website-artifact-heading{align-items:flex-start;flex-direction:column}.chat-website-artifact-actions button{flex:1}}
