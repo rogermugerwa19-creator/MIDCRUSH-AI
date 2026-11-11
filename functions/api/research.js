@@ -44,43 +44,58 @@ export async function onRequestPost({request,env}){
     tiktok:["tiktok.com"]
   };
   const kampalaDate=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Kampala",year:"numeric",month:"long",day:"numeric"}).format(new Date());
-  const requestBody={
-    query:scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:(type==="news"&&/\b(uneb|uganda national examinations board)\b/i.test(query)?query+" Uganda National Examinations Board Uganda latest updates "+kampalaDate:query),
+  const isUnebNews=type==="news"&&/\\b(uneb|uganda national examinations board)\\b/i.test(query);
+  const baseRequest={
     search_depth:type==="news"?"advanced":"basic",
-    chunks_per_source:2,
-    max_results:type==="news"?20:8,
+    chunks_per_source:3,
+    max_results:type==="news"?10:8,
     topic:type==="news"?"news":"general",
-    ...(type==="news"?{days:14}:{}),
-    include_answer:true,
-    include_raw_content:false,
+    ...(type==="news"?{days:14,country:"uganda"}:{}),
+    include_answer:false,
+    include_raw_content:type==="news"?"text":false,
     include_images:type==="images",
     include_image_descriptions:type==="images",
     include_favicon:true,
     include_domains:scope&&includeDomains[scope]?includeDomains[scope]:[],
+    exclude_domains:type==="news"?["tiktok.com"]:[],
     safe_search:true,
     include_usage:true
   };
   try{
-    const response=await fetch("https://api.tavily.com/search",{
+    const searchQueries=isUnebNews?[
+      query+" Uganda UNEB latest UACE examination news "+kampalaDate,
+      "Uganda UNEB PLE examination malpractice arrests latest November 2026",
+      "Uganda UNEB UACE examinations updates candidates latest November 2026"
+    ]:[scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:query];
+    const responses=await Promise.all(searchQueries.map(searchQuery=>fetch("https://api.tavily.com/search",{
       method:"POST",
       headers:{"Authorization":"Bearer "+apiKey,"Content-Type":"application/json"},
-      body:JSON.stringify(requestBody)
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok){
-      const detail=clean(data?.detail?.error||data?.error,220);
-      if(response.status===401)return json({error:"The Tavily key was rejected. Check the TAVILY_API_KEY secret in Cloudflare."},502);
-      if(response.status===429||response.status===432||response.status===433)return json({error:"The search service has reached its current request or credit limit. Check your Tavily usage and try again later."},429);
+      body:JSON.stringify({...baseRequest,query:searchQuery})
+    })));
+    const payloads=await Promise.all(responses.map(async response=>({ok:response.ok,status:response.status,data:await response.json().catch(()=>({}))})));
+    const failed=payloads.find(item=>!item.ok);
+    if(failed){
+      const detail=clean(failed.data?.detail?.error||failed.data?.error,220);
+      if(failed.status===401)return json({error:"The Tavily key was rejected. Check the TAVILY_API_KEY secret in Cloudflare."},502);
+      if(failed.status===429||failed.status===432||failed.status===433)return json({error:"The search service has reached its current request or credit limit. Check your Tavily usage and try again later."},429);
       return json({error:detail||"The internet search provider could not complete this request."},502);
     }
-    const results=(Array.isArray(data.results)?data.results:[]).map(item=>({
-      title:clean(item?.title,180)||"Untitled result",
-      url:safeUrl(item?.url),
-      content:clean(item?.content,900),
-      score:Number.isFinite(item?.score)?item.score:null,
-      publishedDate:clean(item?.published_date,40),
-      favicon:safeUrl(item?.favicon)
-    })).filter(item=>item.url);
+    const data={
+      results:payloads.flatMap(item=>Array.isArray(item.data.results)?item.data.results:[]),
+      images:payloads.flatMap(item=>Array.isArray(item.data.images)?item.data.images:[]),
+      usage:{credits:payloads.reduce((sum,item)=>sum+(Number(item.data?.usage?.credits)||0),0)}
+    };
+    const results=data.results.map(item=>{
+      const raw=typeof item?.raw_content==="string"?item.raw_content:item?.content;
+      return {
+        title:clean(item?.title,180)||"Untitled result",
+        url:safeUrl(item?.url),
+        content:clean(raw,type==="news"?1800:900),
+        score:Number.isFinite(item?.score)?item.score:null,
+        publishedDate:clean(item?.published_date,40),
+        favicon:safeUrl(item?.favicon)
+      };
+    }).filter(item=>item.url);
     if(type==="news"){
       results.sort((a,b)=>{
         const dateA=Date.parse(a.publishedDate)||0;
@@ -95,6 +110,18 @@ export async function onRequestPost({request,env}){
       const seenTitles=new Set();
       const unique=[];
       for(const item of results){
+        let host="";
+        try{host=new URL(item.url).hostname.toLowerCase();}catch{}
+        if(/(^|\\.)tiktok\\.com$/.test(host)&&/\\/discover\\//i.test(item.url))continue;
+        if(isUnebNews){
+          const evidence=(item.title+" "+item.content).toLowerCase();
+          if(!/\\b(uneb|uganda national examinations board|uace|uce|ple)\\b/.test(evidence))continue;
+          const titleTerms=item.title.toLowerCase().match(/[a-z0-9]{4,}/g)||[];
+          const stop=new Set(["uganda","national","examinations","examination","board","latest","news","today","2026","2025"]);
+          const anchors=titleTerms.filter(word=>!stop.has(word));
+          const matched=anchors.filter(word=>item.content.toLowerCase().includes(word)).length;
+          if(anchors.length>=2&&matched===0)continue;
+        }
         let canonical=item.url;
         try{
           const parsed=new URL(item.url);
@@ -111,7 +138,7 @@ export async function onRequestPost({request,env}){
         seenTitles.add(titleKey);
         unique.push(item);
       }
-      results.splice(0,results.length,...unique.slice(0,10));
+      results.splice(0,results.length,...unique.slice(0,isUnebNews?12:10));
     }else{
       results.splice(8);
     }
