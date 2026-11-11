@@ -58,6 +58,11 @@ function renderWorkspace(info){
     let websiteSiteData=null;
     let websiteHtml="";
     let websitePreviewUrl="";
+    let websiteProjectMode="single-html";
+    let websiteFiles=[];
+    let websiteProjectInfo=null;
+    let websiteActiveFilePath="";
+    let websitePreference="auto";
     function readConversations(){
       try{
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
@@ -96,7 +101,7 @@ function renderWorkspace(info){
         remove.textContent="×";
         remove.addEventListener("click",()=>{
           conversations=conversations.filter(c=>c.id!==conversation.id);
-          if(currentChatId===conversation.id){currentChatId=null;history=[];latestReply="";currentImageData="";attachedImageData="";editSession=null;websiteSessionActive=false;websiteMessages=[];websiteSiteData=null;websiteHtml="";if(websitePreviewUrl){URL.revokeObjectURL(websitePreviewUrl);websitePreviewUrl="";}chatMode.value="chat";chatInput.placeholder="Message MIDCRUSH AI...";renderHistory();copyReplyButton.disabled=true;}
+          if(currentChatId===conversation.id){currentChatId=null;history=[];latestReply="";currentImageData="";attachedImageData="";editSession=null;websiteSessionActive=false;websiteMessages=[];websiteSiteData=null;websiteHtml="";websiteProjectMode="single-html";websiteFiles=[];websiteProjectInfo=null;websiteActiveFilePath="";websitePreference="auto";if(websitePreviewUrl){URL.revokeObjectURL(websitePreviewUrl);websitePreviewUrl="";}chatMode.value="chat";chatInput.placeholder="Message MIDCRUSH AI...";renderHistory();copyReplyButton.disabled=true;}
           saveConversations();
         });
         item.append(open,remove);
@@ -136,7 +141,7 @@ function renderWorkspace(info){
           chatBox.appendChild(bubble);
         });
       }
-      if(websiteHtml)renderWebsiteArtifact();
+      if(websiteHtml||websiteFiles.length)renderWebsiteArtifact();
       chatBox.scrollTop=chatBox.scrollHeight;
       latestReply=[...history].reverse().find(m=>m.role==="assistant")?.content||"";
       copyReplyButton.disabled=!latestReply;
@@ -153,7 +158,12 @@ function renderWorkspace(info){
       websiteMessages=Array.isArray(conversation.websiteMessages)?conversation.websiteMessages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string").slice(-12):[];
       websiteSiteData=conversation.websiteSiteData&&typeof conversation.websiteSiteData==="object"?conversation.websiteSiteData:null;
       websiteHtml=typeof conversation.websiteHtml==="string"?conversation.websiteHtml:"";
-      chatMode.value=websiteSessionActive?"website":"chat";
+      websiteProjectMode=conversation.websiteProjectMode==="multi-file"?"multi-file":"single-html";
+      websiteFiles=Array.isArray(conversation.websiteFiles)?conversation.websiteFiles.filter(f=>f&&typeof f.path==="string"&&typeof f.content==="string").slice(0,16):[];
+      websiteProjectInfo=conversation.websiteProjectInfo&&typeof conversation.websiteProjectInfo==="object"?conversation.websiteProjectInfo:null;
+      websiteActiveFilePath=websiteFiles.some(f=>f.path===conversation.websiteActiveFilePath)?conversation.websiteActiveFilePath:(websiteFiles[0]?.path||"");
+      websitePreference=["single-html","multi-file"].includes(conversation.websitePreference)?conversation.websitePreference:"auto";
+      chatMode.value=websiteSessionActive?(websitePreference==="single-html"?"website-single":websitePreference==="multi-file"?"website-fullstack":"website"):"chat";
       history=conversation.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string");
       renderHistory();
       renderRecentChats();
@@ -169,6 +179,11 @@ function renderWorkspace(info){
       conversation.websiteMessages=websiteMessages.slice(-12);
       conversation.websiteSiteData=websiteSiteData;
       conversation.websiteHtml=websiteHtml;
+      conversation.websiteProjectMode=websiteProjectMode;
+      conversation.websiteFiles=websiteFiles;
+      conversation.websiteProjectInfo=websiteProjectInfo;
+      conversation.websiteActiveFilePath=websiteActiveFilePath;
+      conversation.websitePreference=websitePreference;
       const firstUser=history.find(m=>m.role==="user");
       conversation.title=firstUser?firstUser.content.slice(0,55)+(firstUser.content.length>55?"…":""):"New conversation";
       conversation.updatedAt=Date.now();
@@ -181,6 +196,7 @@ function renderWorkspace(info){
       latestReply="";
       currentImageData="";attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
       websiteSessionActive=false;websiteMessages=[];websiteSiteData=null;websiteHtml="";
+      websiteProjectMode="single-html";websiteFiles=[];websiteProjectInfo=null;websiteActiveFilePath="";websitePreference="auto";
       if(websitePreviewUrl){URL.revokeObjectURL(websitePreviewUrl);websitePreviewUrl="";}
       chatMode.value="chat";chatInput.placeholder="Message MIDCRUSH AI...";
       pendingEdit=null;pendingEditCard=null;pendingGeneration=null;editSession=null;
