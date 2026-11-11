@@ -1283,7 +1283,7 @@ function renderInternetWorkspace(target){
     {name:"Facebook & Instagram",detail:"Pages and professional accounts where approved",group:"Social platforms",url:"https://developers.facebook.com/docs/"},
     {name:"TikTok",detail:"Authorised profile and content integrations where approved",group:"Social platforms",url:"https://developers.tiktok.com/"},
     {name:"Discord",detail:"Authorised servers, bots and account permissions",group:"Community",url:"https://discord.com/developers/docs/topics/oauth2"},
-    {name:"Slack",detail:"Workspace apps and approved permission scopes",group:"Work & community",url:"https://api.slack.com/authentication/oauth-v2"},
+    {name:"Slack",detail:"Workspace apps and approved permission scopes",group:"Community",url:"https://api.slack.com/authentication/oauth-v2"},
     {name:"Notion",detail:"Pages, databases and workspace content",group:"Work & storage",url:"https://developers.notion.com/docs/authorization"},
     {name:"Dropbox",detail:"Files and folders you authorise",group:"Work & storage",url:"https://developers.dropbox.com/oauth-guide"},
     {name:"Spotify",detail:"Public music data and permitted playlist features",group:"Media",url:"https://developer.spotify.com/documentation/web-api/concepts/authorization"},
