@@ -171,3 +171,29 @@
 .website-chat-option button:hover{background:#42316e;border-color:#9a80e9}
 .quick-answer-options{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:620px){.website-chat-options{grid-template-columns:1fr}.website-chat-option{padding:9px}}
+
+
+/* Multi-file full-stack project viewer */
+.multi-file-project{display:flex;flex-direction:column;gap:11px}
+.multi-file-project .project-description{margin:0 0 2px;color:#aaa6c1;font-size:10px;line-height:1.5}
+.project-file-workspace{display:grid;grid-template-columns:minmax(145px,.33fr) minmax(0,1fr);gap:10px;min-width:0}
+.project-file-list{display:flex;flex-direction:column;gap:5px;max-height:390px;overflow:auto;padding:7px;border:1px solid #34314a;border-radius:9px;background:#101124}
+.project-file-list button{width:100%;min-width:0;text-align:left;overflow-wrap:anywhere;border:1px solid transparent;border-radius:6px;padding:7px 8px;background:transparent;color:#bcb8d2;font:10px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;cursor:pointer}
+.project-file-list button:hover{background:#24203a;color:#fff}
+.project-file-list button.active{background:#332957;border-color:#7160a9;color:#fff}
+.project-file-editor{display:flex;flex-direction:column;gap:7px;min-width:0}
+.project-file-name{overflow-wrap:anywhere;color:#d9d3f0;font:600 10px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace}
+.project-file-code{width:100%;min-height:390px;max-height:650px;resize:vertical;box-sizing:border-box;border:1px solid #34314a;border-radius:9px;padding:12px;background:#0b0c17;color:#e0e3f4;font:10px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;tab-size:2;outline:none}
+.project-setup-notes{padding:11px 12px;border:1px solid #34314a;border-radius:9px;background:#101124;color:#bdb9cf;font-size:10px;line-height:1.6}
+.project-setup-notes strong{display:block;color:#eeeaff;margin-bottom:5px}
+.project-setup-notes ol{margin:0;padding-left:18px}
+.project-setup-notes li+li{margin-top:3px}
+.project-setup-notes p{margin:0}
+.multi-file-project .project-preview-note{margin:0;color:#9290aa;font-size:9px;line-height:1.6}
+@media(max-width:620px){
+  .project-file-workspace{grid-template-columns:1fr}
+  .project-file-list{flex-direction:row;max-height:none;overflow-x:auto;overflow-y:hidden}
+  .project-file-list button{width:auto;min-width:max-content;max-width:220px}
+  .project-file-code{min-height:320px}
+  .multi-file-project .chat-website-artifact-heading{align-items:flex-start;flex-direction:column}
+}
