@@ -459,7 +459,29 @@ function renderWorkspace(info){
       return /\b(build|create|make|design|generate|develop|code|i need|i want|help me)\b/i.test(text)
         && /\b(website|web site|webpage|web page|landing page|online store|e-?commerce site)\b/i.test(text);
     }
+    function renderWebsiteChatOptions(container,items,type){
+      if(!Array.isArray(items)||!items.length)return;
+      const panel=document.createElement("div");
+      panel.className="website-chat-options "+(type==="recommendations"?"recommendation-options":"quick-answer-options");
+      if(type==="recommendations"){
+        const heading=document.createElement("strong");heading.className="website-chat-options-title";heading.textContent="Things you could add next";
+        panel.appendChild(heading);
+      }
+      items.slice(0,4).forEach(item=>{
+        const option=typeof item==="string"?{title:item,description:"",action:item,mode:"add"}:item;
+        const card=document.createElement("div");card.className="website-chat-option";
+        const title=document.createElement("strong");title.textContent=option.title||"Suggested next step";
+        card.appendChild(title);
+        if(option.description){const description=document.createElement("p");description.textContent=option.description;card.appendChild(description);}
+        const button=document.createElement("button");button.type="button";
+        button.textContent=type==="recommendations"?(option.mode==="guide"?"Guide me":"Add this"):"Choose this";
+        button.addEventListener("click",()=>requestWebsiteChat(String(option.action||option.title||"Please help me with this option.")));
+        card.appendChild(button);panel.appendChild(card);
+      });
+      container.appendChild(panel);
+    }
     async function requestWebsiteChat(value){
+      if(sendButton.disabled)return;
       ensureConversation();
       if(!websiteSessionActive){websiteSessionActive=true;websiteMessages=[];websiteSiteData=null;websiteHtml="";}
       websiteMessages.push({role:"user",content:value});history.push({role:"user",content:value});persistCurrentConversation();
@@ -470,13 +492,27 @@ function renderWorkspace(info){
         const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"chat",messages:websiteMessages.slice(-12),currentSiteData:websiteSiteData||undefined})});
         const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"The website builder could not respond. Please try again.");
         let answer="";
-        if(data.status==="clarify"&&typeof data.question==="string"&&data.question.trim())answer=data.question.trim();
-        else if(data.status==="ready"&&typeof data.html==="string"&&data.html.includes("</html>")&&data.siteData){
-          const wasExisting=!!websiteSiteData;websiteSiteData=data.siteData;websiteHtml=data.html;
-          answer=wasExisting?"I've updated the website preview. Tell me the next change whenever you're ready.":"Your website is ready. The preview is below. You can ask me to change the layout, sections, content or navigation in this same conversation.";
+        if(data.status==="clarify"&&typeof data.question==="string"&&data.question.trim()){
+          answer=[data.message,data.question].filter(Boolean).join("\n\n");
+          waiting.textContent=answer;
+          renderWebsiteChatOptions(waiting,data.choices,"choices");
+        }else if(data.status==="guide"&&typeof data.message==="string"&&data.message.trim()){
+          answer=data.message.trim();
+          waiting.textContent=answer;
+        }else if(data.status==="ready"&&typeof data.html==="string"&&data.html.includes("</html>")&&data.siteData){
+          websiteSiteData=data.siteData;websiteHtml=data.html;
+          answer=typeof data.assistantMessage==="string"&&data.assistantMessage.trim()?data.assistantMessage.trim():"The website is ready. You can ask for changes or choose an improvement below.";
+          waiting.textContent=answer;
+          if(Array.isArray(data.recommendations)&&data.recommendations.length){
+            const summary="Suggested improvements: "+data.recommendations.map(item=>item.title).join("; ");
+            answer+="\n\n"+summary;
+            waiting.textContent=answer;
+            renderWebsiteChatOptions(waiting,data.recommendations,"recommendations");
+          }
+          renderWebsiteArtifact();
         }else throw new Error("The AI returned an incomplete website response. Please try again.");
-        waiting.textContent=answer;history.push({role:"assistant",content:answer});websiteMessages.push({role:"assistant",content:answer});
-        latestReply=answer;copyReplyButton.disabled=false;if(data.status==="ready")renderWebsiteArtifact();persistCurrentConversation();
+        history.push({role:"assistant",content:answer});websiteMessages.push({role:"assistant",content:answer});
+        latestReply=answer;copyReplyButton.disabled=false;persistCurrentConversation();
       }catch(error){waiting.textContent=error.message||"The website could not be created. Please try again.";chatBox.scrollTop=chatBox.scrollHeight;}
       finally{sendButton.disabled=false;chatInput.disabled=false;chatMode.disabled=false;chatBox.scrollTop=chatBox.scrollHeight;chatInput.focus();}
     }
