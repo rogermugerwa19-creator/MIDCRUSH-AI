@@ -375,7 +375,11 @@ function renderWorkspace(info){
       reader.onload=()=>{const source=new Image();source.onload=()=>{const scale=Math.min(1,511/Math.max(source.width,source.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));canvas.getContext("2d").drawImage(source,0,0,canvas.width,canvas.height);attachedImageData=canvas.toDataURL("image/jpeg",0.88);currentImageData=attachedImageData;persistCurrentConversation();chatImagePreview.hidden=false;chatImagePreview.replaceChildren();const img=document.createElement("img");img.src=attachedImageData;img.alt="Photo ready to edit";const remove=document.createElement("button");remove.type="button";remove.textContent="Remove photo";remove.addEventListener("click",()=>{attachedImageData="";currentImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();persistCurrentConversation();});chatImagePreview.append(img,remove);};source.onerror=()=>showToast("Could not read that image. Try another photo.");source.src=String(reader.result||"");};
       reader.readAsDataURL(file);
     });
-    chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value.startsWith("website")?"Describe the website or application you want to build...":chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";});
+    chatMode.addEventListener("change",()=>{
+      const websiteMode=chatMode.value.startsWith("website");
+      chatInput.placeholder=websiteMode?"Describe the website or application you want to build...":chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";
+      if(!websiteMode&&chatMode.value==="chat"&&websiteSessionActive){websiteSessionActive=false;persistCurrentConversation();}
+    });
     function isImageRequest(value){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
@@ -577,15 +581,20 @@ function renderWorkspace(info){
     function isWebsiteRequest(value){
       const text=String(value||"").trim();
       if(/^(how|what|why|when|where|which)\b/i.test(text)||/^(can you explain|tell me how)\b/i.test(text))return false;
-      return /\b(build|create|make|design|generate|develop|code|i need|i want|help me)\b/i.test(text)
-        && /\b(website|web site|webpage|web page|web app|web application|application|landing page|online store|e-?commerce site)\b/i.test(text);
+      const action=/\b(build|create|make|design|generate|develop|code|i need|i want|help me|add|update|improve|edit|change|fix|remove|replace|include)\b/i.test(text);
+      const target=/\b(website|web site|webpage|web page|web app|web application|application|landing page|online store|e-?commerce site|header|footer|navigation|navbar|section|layout|theme|button|menu|movie card|project file)\b/i.test(text);
+      return action&&target;
     }
     async function requestWebsiteChat(value,requestedPreference){
       if(sendButton.disabled)return;
       if(requestedPreference)websitePreference=requestedPreference;
       if(!websitePreference)websitePreference="auto";
       ensureConversation();
-      if(!websiteSessionActive){websiteSessionActive=true;websiteMessages=[];websiteSiteData=null;websiteHtml="";websiteProjectMode="single-html";websiteFiles=[];websiteProjectInfo=null;websiteActiveFilePath="";}
+      if(!websiteSessionActive){
+        const hasSavedProject=!!(websiteSiteData||websiteHtml||websiteFiles.length);
+        websiteSessionActive=true;
+        if(!hasSavedProject){websiteMessages=[];websiteSiteData=null;websiteHtml="";websiteProjectMode="single-html";websiteFiles=[];websiteProjectInfo=null;websiteActiveFilePath="";}
+      }
       websiteMessages.push({role:"user",content:value});history.push({role:"user",content:value});persistCurrentConversation();
       const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
       const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent=websiteSiteData?"Reviewing your requested website change…":"Let's plan your website…";chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
@@ -594,7 +603,9 @@ function renderWorkspace(info){
         const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"chat",messages:websiteMessages.slice(-12),projectPreference:websitePreference,currentSiteData:websiteSiteData||undefined,currentProject:websiteProjectMode==="multi-file"?{...websiteProjectInfo,files:websiteFiles}:undefined})});
         const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"The website builder could not respond. Please try again.");
         let answer="";
-        if(data.status==="clarify"&&typeof data.question==="string"&&data.question.trim()){
+        if(data.status==="chat"){
+          answer=await handOffToNormalChat(waiting);
+        }else if(data.status==="clarify"&&typeof data.question==="string"&&data.question.trim()){
           answer=[data.message,data.question].filter(Boolean).join("\n\n");
           waiting.textContent=answer;
           renderWebsiteChatOptions(waiting,data.choices,"choices");
