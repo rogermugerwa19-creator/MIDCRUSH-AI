@@ -349,10 +349,10 @@ function renderWorkspace(info){
             const researchData=await researchResponse.json().catch(()=>({}));
             if(!researchResponse.ok)webNotice=researchData.error||"Web search is not available right now.";
             else{
-              webSources=(Array.isArray(researchData.results)?researchData.results:[]).slice(0,6).map(item=>({
+              webSources=(Array.isArray(researchData.results)?researchData.results:[]).slice(0,8).map(item=>({
                 title:String(item.title||"Web source").slice(0,180),
                 url:String(item.url||""),
-                content:String(item.content||"").slice(0,800),
+                content:String(item.content||"").slice(0,700),
                 publishedDate:String(item.publishedDate||"").slice(0,40)
               })).filter(item=>/^https?:\/\//i.test(item.url));
               webContext=[
