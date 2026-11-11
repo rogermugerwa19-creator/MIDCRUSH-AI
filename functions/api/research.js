@@ -74,7 +74,7 @@ export async function onRequestPost({request,env}){
     })));
     const payloads=await Promise.all(responses.map(async response=>({ok:response.ok,status:response.status,data:await response.json().catch(()=>({}))})));
     const failed=payloads.find(item=>!item.ok);
-    if(failed){
+    if(failed&&payloads.every(item=>!item.ok)){
       const detail=clean(failed.data?.detail?.error||failed.data?.error,220);
       if(failed.status===401)return json({error:"The Tavily key was rejected. Check the TAVILY_API_KEY secret in Cloudflare."},502);
       if(failed.status===429||failed.status===432||failed.status===433)return json({error:"The search service has reached its current request or credit limit. Check your Tavily usage and try again later."},429);
