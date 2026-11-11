@@ -32,7 +32,7 @@ function navigate(page){
 function renderWorkspace(info){
   const target=document.getElementById("toolWorkspace");
   if(info.kind==="chat"){
-    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task. Your recent conversations are saved on this device.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
+    target.innerHTML='<div class="workspace-card"><div class="chat-toolbar"><div class="workspace-label">Your conversations</div><div class="chat-actions"><button type="button" class="chat-action" id="newChatButton"><i data-lucide="plus"></i> New chat</button><button type="button" class="chat-action" id="copyReplyButton" disabled><i data-lucide="copy"></i> Copy reply</button></div></div><div class="chat-box" id="chatBox"><div class="welcome-message">👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or describe a website. I can ask a few questions, then build it here in the chat.</div></div><div class="chat-tools-row"><select id="chatMode" aria-label="Chat mode"><option value="chat">Normal Chat</option><option value="website">Build Website</option><option value="generate">Generate Image</option><option value="edit">Edit Photo</option></select><label class="chat-upload-button" for="chatImageFile"><i data-lucide="image-plus"></i> Add photo</label><input id="chatImageFile" type="file" accept="image/jpeg,image/png,image/webp" hidden></div><div class="chat-image-preview" id="chatImagePreview" hidden></div><form class="chat-compose" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="Message MIDCRUSH AI..." aria-label="Your message"><button class="send-button" aria-label="Send message"><i data-lucide="arrow-up"></i></button></form><div class="chat-footnote">Recent chats are saved in this browser on this device. AI responses can make mistakes; check important information.</div></div>';
     const chatForm=document.getElementById("chatForm");
     const chatInput=document.getElementById("chatInput");
     const chatMode=document.getElementById("chatMode");
@@ -53,6 +53,11 @@ function renderWorkspace(info){
     let pendingGeneration=null;
     let editSession=null;
     let currentImageData="";
+    let websiteSessionActive=false;
+    let websiteMessages=[];
+    let websiteSiteData=null;
+    let websiteHtml="";
+    let websitePreviewUrl="";
     function readConversations(){
       try{
         const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
@@ -98,12 +103,30 @@ function renderWorkspace(info){
         recentChats.appendChild(item);
       });
     }
+    function renderWebsiteArtifact(){
+      chatBox.querySelector("#chatWebsiteArtifact")?.remove();
+      if(!websiteHtml)return;
+      if(websitePreviewUrl)URL.revokeObjectURL(websitePreviewUrl);
+      websitePreviewUrl=URL.createObjectURL(new Blob([websiteHtml],{type:"text/html;charset=utf-8"}));
+      const card=document.createElement("section");card.id="chatWebsiteArtifact";card.className="chat-website-artifact";
+      const heading=document.createElement("div");heading.className="chat-website-artifact-heading";
+      const title=document.createElement("strong");title.textContent="Your website";
+      const detail=document.createElement("span");detail.textContent="Live preview · One HTML file";heading.append(title,detail);
+      const actions=document.createElement("div");actions.className="chat-website-artifact-actions";
+      const download=document.createElement("button");download.type="button";download.textContent="Download HTML";
+      download.addEventListener("click",()=>{const url=URL.createObjectURL(new Blob([websiteHtml],{type:"text/html;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="midcrush-website.html";document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);});
+      const refresh=document.createElement("button");refresh.type="button";refresh.textContent="Refresh preview";refresh.addEventListener("click",()=>renderWebsiteArtifact());
+      actions.append(download,refresh);
+      const frame=document.createElement("iframe");frame.className="chat-website-preview";frame.title="Website generated in MIDCRUSH AI chat";frame.setAttribute("sandbox","");frame.setAttribute("referrerpolicy","no-referrer");frame.src=websitePreviewUrl;
+      const note=document.createElement("p");note.textContent="Ask for changes in this same chat. MIDCRUSH AI will update this website without replacing parts you did not ask to change.";
+      card.append(heading,actions,frame,note);chatBox.appendChild(card);
+    }
     function renderHistory(){
       chatBox.replaceChildren();
       if(!history.length){
         const welcome=document.createElement("div");
         welcome.className="welcome-message";
-        welcome.textContent="👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or get help with a task.";
+        welcome.textContent="👋 Welcome to MIDCRUSH AI. Ask a question, explore an idea, or describe a website. I can clarify your idea and build the site here.";
         chatBox.appendChild(welcome);
       }else{
         history.forEach(message=>{
@@ -113,6 +136,7 @@ function renderWorkspace(info){
           chatBox.appendChild(bubble);
         });
       }
+      if(websiteHtml)renderWebsiteArtifact();
       chatBox.scrollTop=chatBox.scrollHeight;
       latestReply=[...history].reverse().find(m=>m.role==="assistant")?.content||"";
       copyReplyButton.disabled=!latestReply;
@@ -124,6 +148,11 @@ function renderWorkspace(info){
       currentImageData=typeof conversation.imageData==="string"?conversation.imageData:"";
       attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
       editSession=null;pendingEdit=null;pendingEditCard=null;
+      websiteSessionActive=conversation.websiteSessionActive===true;
+      websiteMessages=Array.isArray(conversation.websiteMessages)?conversation.websiteMessages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string").slice(-12):[];
+      websiteSiteData=conversation.websiteSiteData&&typeof conversation.websiteSiteData==="object"?conversation.websiteSiteData:null;
+      websiteHtml=typeof conversation.websiteHtml==="string"?conversation.websiteHtml:"";
+      chatMode.value=websiteSessionActive?"website":"chat";
       history=conversation.messages.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string");
       renderHistory();
       renderRecentChats();
@@ -135,6 +164,10 @@ function renderWorkspace(info){
       if(!conversation)return;
       conversation.messages=history.slice(-80);
       conversation.imageData=currentImageData||"";
+      conversation.websiteSessionActive=websiteSessionActive;
+      conversation.websiteMessages=websiteMessages.slice(-12);
+      conversation.websiteSiteData=websiteSiteData;
+      conversation.websiteHtml=websiteHtml;
       const firstUser=history.find(m=>m.role==="user");
       conversation.title=firstUser?firstUser.content.slice(0,55)+(firstUser.content.length>55?"…":""):"New conversation";
       conversation.updatedAt=Date.now();
@@ -146,6 +179,9 @@ function renderWorkspace(info){
       history=[];
       latestReply="";
       currentImageData="";attachedImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();
+      websiteSessionActive=false;websiteMessages=[];websiteSiteData=null;websiteHtml="";
+      if(websitePreviewUrl){URL.revokeObjectURL(websitePreviewUrl);websitePreviewUrl="";}
+      chatMode.value="chat";chatInput.placeholder="Message MIDCRUSH AI...";
       pendingEdit=null;pendingEditCard=null;pendingGeneration=null;editSession=null;
       renderHistory();
       renderRecentChats();
@@ -217,7 +253,7 @@ function renderWorkspace(info){
       reader.onload=()=>{const source=new Image();source.onload=()=>{const scale=Math.min(1,511/Math.max(source.width,source.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(source.width*scale));canvas.height=Math.max(1,Math.round(source.height*scale));canvas.getContext("2d").drawImage(source,0,0,canvas.width,canvas.height);attachedImageData=canvas.toDataURL("image/jpeg",0.88);currentImageData=attachedImageData;persistCurrentConversation();chatImagePreview.hidden=false;chatImagePreview.replaceChildren();const img=document.createElement("img");img.src=attachedImageData;img.alt="Photo ready to edit";const remove=document.createElement("button");remove.type="button";remove.textContent="Remove photo";remove.addEventListener("click",()=>{attachedImageData="";currentImageData="";chatImageFile.value="";chatImagePreview.hidden=true;chatImagePreview.replaceChildren();persistCurrentConversation();});chatImagePreview.append(img,remove);};source.onerror=()=>showToast("Could not read that image. Try another photo.");source.src=String(reader.result||"");};
       reader.readAsDataURL(file);
     });
-    chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":"Message MIDCRUSH AI...";});
+    chatMode.addEventListener("change",()=>{chatInput.placeholder=chatMode.value==="generate"?"Describe the image to generate...":chatMode.value==="edit"?"Describe how to edit your photo...":chatMode.value==="website"?"Describe the website you want to build...":"Message MIDCRUSH AI...";});
     function isImageRequest(value){
       return /\b(generate|create|make|draw|design|produce)\b/i.test(value) && /\b(image|picture|photo|portrait|wallpaper|poster|illustration|artwork|logo|thumbnail)\b/i.test(value);
     }
@@ -416,6 +452,32 @@ function renderWorkspace(info){
       const hint=document.createElement("small");hint.className="generation-approval-hint";hint.textContent="You can also type “Okay”, “Yes” or “Go ahead” to begin editing.";
       actions.append(confirm,change);card.append(heading,preview,summary,actions,hint);chatBox.appendChild(card);chatBox.scrollTop=chatBox.scrollHeight;
     }
+    function isWebsiteRequest(value){
+      const text=String(value||"").trim();
+      return /\b(build|create|make|design|generate|develop|code|i need|i want|help me)\b/i.test(text)
+        && /\b(website|web site|webpage|web page|landing page|online store|e-?commerce site)\b/i.test(text);
+    }
+    async function requestWebsiteChat(value){
+      ensureConversation();
+      if(!websiteSessionActive){websiteSessionActive=true;websiteMessages=[];websiteSiteData=null;websiteHtml="";}
+      websiteMessages.push({role:"user",content:value});history.push({role:"user",content:value});persistCurrentConversation();
+      const bubble=document.createElement("div");bubble.className="message-bubble";bubble.textContent=value;chatBox.appendChild(bubble);
+      const waiting=document.createElement("div");waiting.className="reply-bubble";waiting.textContent=websiteSiteData?"Reviewing your requested website change…":"Let's plan your website…";chatBox.appendChild(waiting);chatBox.scrollTop=chatBox.scrollHeight;
+      sendButton.disabled=true;chatInput.disabled=true;chatMode.disabled=true;
+      try{
+        const response=await fetch("/api/website",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"chat",messages:websiteMessages.slice(-12),currentSiteData:websiteSiteData||undefined})});
+        const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"The website builder could not respond. Please try again.");
+        let answer="";
+        if(data.status==="clarify"&&typeof data.question==="string"&&data.question.trim())answer=data.question.trim();
+        else if(data.status==="ready"&&typeof data.html==="string"&&data.html.includes("</html>")&&data.siteData){
+          const wasExisting=!!websiteSiteData;websiteSiteData=data.siteData;websiteHtml=data.html;
+          answer=wasExisting?"I've updated the website preview. Tell me the next change whenever you're ready.":"Your website is ready. The preview is below. You can ask me to change the layout, sections, content or navigation in this same conversation.";
+        }else throw new Error("The AI returned an incomplete website response. Please try again.");
+        waiting.textContent=answer;history.push({role:"assistant",content:answer});websiteMessages.push({role:"assistant",content:answer});
+        latestReply=answer;copyReplyButton.disabled=false;if(data.status==="ready")renderWebsiteArtifact();persistCurrentConversation();
+      }catch(error){waiting.textContent=error.message||"The website could not be created. Please try again.";chatBox.scrollTop=chatBox.scrollHeight;}
+      finally{sendButton.disabled=false;chatInput.disabled=false;chatMode.disabled=false;chatBox.scrollTop=chatBox.scrollHeight;chatInput.focus();}
+    }
     chatForm.addEventListener("submit",async e=>{
       e.preventDefault();
       const value=chatInput.value.trim();
@@ -477,6 +539,7 @@ function renderWorkspace(info){
         }
         return;
       }
+      if(mode==="website"||(mode==="chat"&&isWebsiteRequest(value))){chatMode.value="website";await requestWebsiteChat(value);return;}
       if(mode==="edit"&&!attachedImageData&&!currentImageData){showToast("Add a photo first.");return;}
       if(mode==="generate"||(mode==="chat"&&!attachedImageData&&isImageRequest(value))){
         ensureConversation();
