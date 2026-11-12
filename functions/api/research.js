@@ -113,16 +113,19 @@ export async function onRequestPost({request,env}){
       const unique=[];
       for(const item of results){
         let host="";
-        try{host=new URL(item.url).hostname.toLowerCase();}catch{}
-        if(/(^|\.)tiktok\.com$/.test(host)&&/\/discover\//i.test(item.url))continue;
-        if(isUnebNews&&/(^|\\/)(tag|category|categories|archive|archives|jobs|job|procurement|tenders?)(\\/|$)/i.test(new URL(item.url).pathname))continue;
-        if(isUnebNews&&/(^|\\.)(expertini\\.com|tavily\\.com|jamiiforums\\.com|studocu\\.com|teapawt\\.org|sotwe\\.com|xitter\\.cf|youtube\\.com|youtu\\.be|x\\.com|twitter\\.com|t\\.co|facebook\\.com|instagram\\.com)$/.test(host))continue;
+        let pathname="";
+        try{
+          const parsedUrl=new URL(item.url);
+          host=parsedUrl.hostname.toLowerCase();
+          pathname=parsedUrl.pathname.toLowerCase();
+        }catch{}
+        if((host==="tiktok.com"||host.endsWith(".tiktok.com"))&&pathname.includes("/discover/"))continue;
         if(isUnebNews){
+          if(/\/(tag|category|categories|archive|archives|jobs|job|procurement|tenders?)(\/|$)/i.test(pathname))continue;
+          const blockedHosts=["expertini.com","tavily.com","jamiiforums.com","studocu.com","teapawt.org","sotwe.com","xitter.cf","youtube.com","youtu.be","x.com","twitter.com","t.co","facebook.com","instagram.com"];
+          if(blockedHosts.some(domain=>host===domain||host.endsWith("."+domain)))continue;
           const titleText=item.title.toLowerCase();
-          if(/\\b(jobs?|vacancies|procurement|tenders?|directory|knowledge base|school hall|student life|tag:|archive|company profile)\\b/.test(titleText))continue;
-          const titleText=item.title.toLowerCase();
-          // Keep actual news headlines; discard radio programme pages and generic directory/listing pages.
-          if(!/\b(uneb|uace|uce|ple|examinations?|exams?|malpractice|candidates?|school|teacher|arrests?|scouts?|exam papers?)\b/.test(titleText))continue;
+          if(/\b(jobs?|vacancies|procurement|tenders?|directory|knowledge base|school hall|student life|tag:|archive|company profile)\b/.test(titleText))continue;
           const evidence=(item.title+" "+item.content).toLowerCase();
           if(!/\b(uneb|uganda national examinations board|uace|uce|ple)\b/.test(evidence))continue;
           const titleTerms=item.title.toLowerCase().match(/[a-z0-9]{4,}/g)||[];
