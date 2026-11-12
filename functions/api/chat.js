@@ -42,7 +42,9 @@ async function callOpenAICompatible({ name, url, key, model, messages, headers =
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(`${name} returned HTTP ${response.status}`);
+    const detail = typeof data?.error?.message === "string" ? data.error.message :
+      (typeof data?.error === "string" ? data.error : (typeof data?.message === "string" ? data.message : ""));
+    throw new Error(name + " returned HTTP " + response.status + (detail ? ": " + detail.slice(0, 220) : ""));
   }
   const answer = getOpenAIAnswer(data);
   if (!answer) throw new Error(`${name} returned an empty response`);
@@ -64,7 +66,11 @@ async function callGemini(key, messages, image, systemPrompt = SYSTEM_PROMPT) {
     })
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`Gemini returned HTTP ${response.status}`);
+  if (!response.ok) {
+    const detail = typeof data?.error?.message === "string" ? data.error.message :
+      (typeof data?.error === "string" ? data.error : "");
+    throw new Error("Gemini returned HTTP " + response.status + (detail ? ": " + detail.slice(0, 220) : ""));
+  }
   const answer = extractText(data?.candidates?.[0]?.content?.parts);
   if (!answer) throw new Error("Gemini returned an empty response");
   return {
@@ -181,7 +187,7 @@ export async function onRequestPost({ request, env }) {
   // Providers are tried in order. Only providers with configured secrets are attempted.
   const providers = [];
   if (env.GROQ_API_KEY) {
-    providers.push(() => callOpenAICompatible({
+    providers.push({ name: "Groq", run: () => callOpenAICompatible({
       name: "Groq",
       url: "https://api.groq.com/openai/v1/chat/completions",
       key: env.GROQ_API_KEY,
@@ -189,13 +195,13 @@ export async function onRequestPost({ request, env }) {
       messages,
       image,
       systemPrompt
-    }));
+    }) });
   }
   if (env.GEMINI_API_KEY) {
-    providers.push(() => callGemini(env.GEMINI_API_KEY, messages, image, systemPrompt));
+    providers.push({ name: "Gemini", run: () => callGemini(env.GEMINI_API_KEY, messages, image, systemPrompt) });
   }
   if (env.OPENROUTER_API_KEY) {
-    providers.push(() => callOpenAICompatible({
+    providers.push({ name: "OpenRouter", run: () => callOpenAICompatible({
       name: "OpenRouter",
       url: "https://openrouter.ai/api/v1/chat/completions",
       key: env.OPENROUTER_API_KEY,
@@ -204,29 +210,42 @@ export async function onRequestPost({ request, env }) {
       image,
       systemPrompt,
       headers: { "HTTP-Referer": "https://midcrush-ai.pages.dev", "X-Title": "MIDCRUSH AI" }
-    }));
+    }) });
   }
   if (env.AI && image) {
-    providers.push(() => callCloudflareVision(env.AI, messages, image, systemPrompt));
+    providers.push({ name: "Cloudflare AI Vision", run: () => callCloudflareVision(env.AI, messages, image, systemPrompt) });
   } else if (env.AI) {
-    providers.push(() => callCloudflare(env.AI, messages, systemPrompt));
+    providers.push({ name: "Cloudflare AI", run: () => callCloudflare(env.AI, messages, systemPrompt) });
   }
 
   if (providers.length === 0) {
     return json({ error: "MIDCRUSH AI is not connected to an AI provider yet. Please configure a provider in Cloudflare Pages settings." }, 503);
   }
 
-  for (const attempt of providers) {
+  const providerFailures = [];
+  for (const provider of providers) {
     try {
-      const result = await attempt();
+      const result = await provider.run();
       return json(webSources.length ? { ...result, sources: webSources, usedWeb: true } : result);
     } catch (error) {
-      // Continue to the next configured provider if this one is unavailable,
-      // rate-limited, misconfigured, or returns an unusable response.
+      // Keep trying the next configured provider, but retain a safe reason
+      // so the user and developer can identify the failing service.
+      let reason = String(error?.message || "Unknown provider error")
+        .replace(/[\u0000-\u001f\u007f]/g, " ")
+        .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+        .replace(/https?:\/\/\S+/gi, "[provider URL]")
+        .slice(0, 220);
+      for (const secret of [env.GROQ_API_KEY, env.GEMINI_API_KEY, env.OPENROUTER_API_KEY]) {
+        if (typeof secret === "string" && secret.length > 6) reason = reason.split(secret).join("[redacted]");
+      }
+      providerFailures.push(provider.name + ": " + reason);
+      console.error("MIDCRUSH AI provider failed:", provider.name, reason);
     }
   }
 
   return json({
-    error: "All configured AI providers are temporarily unavailable or have reached their limits. Please try again later."
+    error: "Every configured AI provider failed. " + providerFailures.join(" | "),
+    attemptedProviders: providers.map(provider => provider.name),
+    providerFailures
   }, 503);
 }
