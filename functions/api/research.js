@@ -120,6 +120,11 @@ export async function onRequestPost({request,env}){
           pathname=parsedUrl.pathname.toLowerCase();
         }catch{}
         if((host==="tiktok.com"||host.endsWith(".tiktok.com"))&&pathname.includes("/discover/"))continue;
+        if(isUnebNews&&item.publishedDate){
+          const publishedAt=Date.parse(item.publishedDate);
+          const now=Date.now();
+          if(Number.isFinite(publishedAt)&&(publishedAt>now+86400000||now-publishedAt>14*86400000))continue;
+        }
         if(isUnebNews){
           if(/\/(tag|category|categories|archive|archives|jobs|job|procurement|tenders?)(\/|$)/i.test(pathname))continue;
           const blockedHosts=["expertini.com","tavily.com","jamiiforums.com","studocu.com","teapawt.org","sotwe.com","xitter.cf","youtube.com","youtu.be","x.com","twitter.com","t.co","facebook.com","instagram.com"];
