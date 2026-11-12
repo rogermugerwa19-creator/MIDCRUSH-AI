@@ -80,7 +80,7 @@ function renderPhotoEditorWorkspace(target){
           <figure><figcaption>Original photo</figcaption><img id="photoEditBefore" alt="Original uploaded photo"></figure>
           <figure><figcaption>Edited photo</figcaption><img id="photoEditAfter" alt="AI-edited photo"></figure>
         </div>
-        <div class="photo-edit-result-actions"><span>Generated with FLUX.2 Klein 9B</span><button type="button" class="chat-action" id="photoEditStartOver"><i data-lucide="refresh-cw"></i> Start another edit</button></div>
+        <div class="photo-edit-result-actions"><span id="photoEditModelUsed">Generated with FLUX.2 Klein 9B</span><button type="button" class="chat-action" id="photoEditStartOver"><i data-lucide="refresh-cw"></i> Start another edit</button></div>
       </section>
       <p class="photo-editor-model-note">Photo editing uses Cloudflare Workers AI. The uploaded image is resized to fit the model's image-input limits before editing. Availability depends on the remaining AI usage allowance.</p>
     </div>`;
@@ -101,6 +101,7 @@ function renderPhotoEditorWorkspace(target){
   const beforeImage=target.querySelector("#photoEditBefore");
   const afterImage=target.querySelector("#photoEditAfter");
   const download=target.querySelector("#photoEditDownload");
+  const modelUsedLabel=target.querySelector("#photoEditModelUsed");
   const startOver=target.querySelector("#photoEditStartOver");
 
   let optimizedImage="";
@@ -254,6 +255,7 @@ function renderPhotoEditorWorkspace(target){
       beforeImage.src=originalPreviewUrl;
       afterImage.src=data.image;
       download.href=data.image;
+      modelUsedLabel.textContent="Generated with "+(data.model||"FLUX.2 Klein");
       resultSection.hidden=false;
       status.textContent="Your edited photo is ready.";
       resultSection.scrollIntoView({behavior:"smooth",block:"start"});
