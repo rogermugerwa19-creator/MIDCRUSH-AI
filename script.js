@@ -418,10 +418,10 @@ function renderWorkspace(info){
                   link.target="_blank";
                   link.rel="noopener noreferrer";
                   link.className="chat-inline-source";
-                  link.textContent=match[0];
-                  const title=String(source.title||url.hostname).slice(0,160);
-                  link.title="Open source "+match[1]+": "+title;
-                  link.setAttribute("aria-label","Open source "+match[1]+": "+title);
+                  const sourceTitle=String(source.title||url.hostname).trim();
+                  link.textContent=sourceTitle.length>110?sourceTitle.slice(0,107).trimEnd()+"…":sourceTitle;
+                  link.title="Open source: "+sourceTitle;
+                  link.setAttribute("aria-label","Open source: "+sourceTitle);
                   container.appendChild(link);
                   linked=true;
                 }
