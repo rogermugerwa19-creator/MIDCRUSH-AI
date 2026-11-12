@@ -111,6 +111,16 @@ export async function onRequestPost({ request, env }) {
   const [width, height] = dimensions[aspectRatio];
 
   try {
+    let image = null;
+    if (body.image) {
+      try {
+        image = decodeImage(body.image);
+      } catch (error) {
+        return json({ error: error.message }, 400);
+      }
+      if (!image) return json({ error: "Upload a JPG, PNG or WebP image." }, 400);
+    }
+
     async function runFlux(modelId) {
       // Rebuild FormData for each attempt because multipart streams can only be consumed once.
       const form = new FormData();
@@ -192,13 +202,6 @@ export async function onRequestPost({ request, env }) {
       aspectRatio
     });
   } catch (error) {
-    const message = String(error?.message || "");
-    if (/3036|10,000 neurons|daily free allocation/i.test(message)) {
-      return json({ error: "The free daily Cloudflare AI allowance has been used up. It resets at 00:00 UTC. Try again after it resets." }, 429);
-    }
-    if (/3040|out of capacity|capacity/i.test(message)) {
-      return json({ error: "The image service is busy right now. Please wait a little and try again." }, 503);
-    }
-    return json({ error: "Image generation or editing failed. Please try again in a moment." }, 502);
+    return imageErrorResponse(error, "FLUX.2 Klein 9B");
   }
 }
