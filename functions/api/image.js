@@ -64,8 +64,11 @@ function imageErrorResponse(error, modelName) {
   if (details.code === 3040 || /out of capacity|capacity temporarily/i.test(details.message)) {
     return json({ error: "The image service is temporarily at capacity. MIDCRUSH AI retried FLUX.2 Klein 9B and tried its smaller 4B fallback, but both were busy. Please try again shortly.", code: details.code }, 503);
   }
-  if (details.code === 3043 || /internal server error/i.test(details.message)) {
-    return json({ error: "The image service encountered a temporary internal error (3043). MIDCRUSH AI retried its main model and tried its smaller fallback, but the service is still failing. Please try again shortly.", code: details.code || 3043 }, 503);
+  if (details.code === 3043 || /\\b3043\\b/.test(details.message)) {
+    return json({ error: "The image service encountered a temporary internal error (3043). MIDCRUSH AI retried its main model and tried its smaller fallback, but the service is still failing. Please try again shortly.", code: 3043 }, 503);
+  }
+  if (/internal server error/i.test(details.message)) {
+    return json({ error: "The image service encountered a temporary internal server error. MIDCRUSH AI retried its main model and tried its smaller fallback, but the service is still failing. Please try again shortly.", code: details.code || null }, 503);
   }
   if (details.status === 429) {
     return json({ error: "The image service is temporarily rate-limited. MIDCRUSH AI already retried; please wait briefly before trying again.", code: 429 });
