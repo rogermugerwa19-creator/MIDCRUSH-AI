@@ -32,7 +32,7 @@ function describeModelError(error) {
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ")
     .trim()
     .slice(0, 500);
-  const codeMatch = message.match(/\\b(3036|3040|3043|3006|3007|3008|5004|5007|5016|5018|5035)\\b/);
+  const codeMatch = message.match(/\b(3036|3040|3043|3006|3007|3008|5004|5007|5016|5018|5035)\b/);
   const code = codeMatch ? Number(codeMatch[1]) : Number(error?.code || 0) || null;
   const status = Number(error?.status || error?.statusCode || error?.response?.status || 0) || null;
   return { message, code, status };
