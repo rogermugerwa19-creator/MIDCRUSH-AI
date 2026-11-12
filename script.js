@@ -338,7 +338,7 @@ function renderWorkspace(info){
         let webContext="";
         let webSources=[];
         let webNotice="";
-        if(useWebSearch&&!imageData){
+        if(useWebSearch&&!imageData&&!continuation){
           waiting.textContent="Searching the web…";
           try{
             const researchResponse=await fetch("/api/research",{
@@ -364,7 +364,7 @@ function renderWorkspace(info){
           }catch{webNotice="Could not reach the web search service.";}
         }
         if(useWebSearch&&!imageData&&(!webSources.length||webNotice)){
-          const explanation=webNotice||"The search provider returned no usable source links.";
+          const explanation=webNotice||"The search provider returned no usable sources.";
           const safeMessage="I couldn't verify this using live web sources, so I won't generate a current-events answer from memory.";
           waiting.textContent=safeMessage;
           const note=document.createElement("small");
@@ -377,17 +377,59 @@ function renderWorkspace(info){
           persistCurrentConversation();
           return;
         }
+
+        async function askModel(messages){
+          const response=await fetch("/api/chat",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+              messages,
+              image:imageData||currentImageData||undefined,
+              webContext:webContext||undefined,
+              webSources:webSources.length?webSources:undefined
+            })
+          });
+          const data=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
+          return data;
+        }
+        function cleanAnswer(text){
+          const answer=typeof text==="string"?text:"";
+          return useWebSearch?answer.replace(/(?:\\\\+)?\*{1,3}/g,"").replace(/(?:\\\\+)?`{1,3}/g,""):answer;
+        }
+
         waiting.textContent=useWebSearch?"Preparing an answer…":"MIDCRUSH AI is thinking…";
-        const response=await fetch("/api/chat",{
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({messages:history.slice(-12),image:imageData||currentImageData||undefined,webContext:webContext||undefined,webSources:webSources.length?webSources:undefined})
-        });
-        const data=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(data.error||"The AI service could not answer right now.");
-        const rawAnswer=typeof data.response==="string"?data.response:"I couldn't generate a response. Please try again.";
-        const answer=useWebSearch?rawAnswer.replace(/(?:\\+)?\*{1,3}/g,"").replace(/(?:\\+)?`{1,3}/g,""):rawAnswer;
-        waiting.textContent=answer;
+        let data=await askModel(history.slice(-12));
+        let combinedAnswer=cleanAnswer(data.response);
+        if(!combinedAnswer)combinedAnswer="I couldn't generate a response. Please try again.";
+        history.push({role:"assistant",content:combinedAnswer});
+        let wasTruncated=Boolean(data.truncated);
+        let autoContinueCount=0;
+        let continuationFailed=false;
+
+        // Finish token-limited answers automatically. Reuse the exact same source
+        // records; do not run a second web search or let the continuation invent
+        // extra current-events claims.
+        while(wasTruncated&&autoContinueCount<2){
+          waiting.textContent="Finishing the answer…";
+          const continuationPrompt="Continue the same answer exactly where it stopped. Do not repeat completed text, add unrelated sections, introduce new news items, or broaden the question. Use only the exact same web sources and article extracts already supplied in this conversation. Do not perform a new search. Do not add any factual claim, date, number, announcement or programme unless it is explicitly supported by those same source records. Finish the current sentence or item and complete the original request. Keep the answer concise.";
+          const continuationMessages=[...history.slice(-11),{role:"user",content:continuationPrompt}];
+          try{
+            const nextData=await askModel(continuationMessages);
+            const nextAnswer=cleanAnswer(nextData.response);
+            if(!nextAnswer){continuationFailed=true;break;}
+            combinedAnswer+=(combinedAnswer.trimEnd().match(/[.!?…]$/)?"\n\n":" ")+nextAnswer;
+            history[history.length-1]={role:"assistant",content:combinedAnswer};
+            data={...data,truncated:Boolean(nextData.truncated)};
+            wasTruncated=Boolean(nextData.truncated);
+            autoContinueCount++;
+          }catch{
+            continuationFailed=true;
+            break;
+          }
+        }
+
+        waiting.textContent=combinedAnswer;
         if(Array.isArray(data.sources)&&data.sources.length){
           const sourceBox=document.createElement("div");sourceBox.className="chat-web-sources";
           const sourceTitle=document.createElement("strong");sourceTitle.textContent="Web sources";sourceBox.appendChild(sourceTitle);
@@ -402,22 +444,18 @@ function renderWorkspace(info){
           waiting.appendChild(sourceBox);
         }else if(useWebSearch){
           const note=document.createElement("small");note.className="chat-web-note";
-          note.textContent=webNotice?"Web search was unavailable: "+webNotice:"No web sources were attached to this answer.";
+          note.textContent="No web sources were attached to this answer.";
           waiting.appendChild(note);
         }
-        latestReply=continuation&&latestReply?latestReply+"\n\n"+answer:answer;
-        copyReplyButton.disabled=false;
-        history.push({role:"assistant",content:answer});
-        persistCurrentConversation();
-        if(data.truncated){
-          const continueButton=document.createElement("button");
-          continueButton.type="button";
-          continueButton.className="chat-action chat-continue";
-          continueButton.textContent="Continue answer";
-          continueButton.addEventListener("click",()=>{continueButton.remove();requestReply("Continue exactly where you stopped. Do not repeat the previous text; finish the remaining answer.",true);});
+        if(wasTruncated||continuationFailed){
+          const note=document.createElement("small");note.className="chat-web-note";
+          note.textContent="The answer may still be incomplete. Try asking for a shorter summary.";
           waiting.appendChild(document.createElement("br"));
-          waiting.appendChild(continueButton);
+          waiting.appendChild(note);
         }
+        latestReply=combinedAnswer;
+        copyReplyButton.disabled=false;
+        persistCurrentConversation();
       }catch(error){
         waiting.textContent=error.message||"Connection error. Please try again.";
         history.pop();
