@@ -32,7 +32,7 @@ function describeModelError(error) {
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ")
     .trim()
     .slice(0, 500);
-  const codeMatch = message.match(/\b(3036|3040|3006|3007|3008|5004|5007|5016|5018|5035)\b/);
+  const codeMatch = message.match(/\\b(3036|3040|3043|3006|3007|3008|5004|5007|5016|5018|5035)\\b/);
   const code = codeMatch ? Number(codeMatch[1]) : Number(error?.code || 0) || null;
   const status = Number(error?.status || error?.statusCode || error?.response?.status || 0) || null;
   return { message, code, status };
@@ -40,9 +40,9 @@ function describeModelError(error) {
 
 function isTemporaryImageError(details) {
   if (details.code === 3036) return false; // Daily free allocation, not a transient failure.
-  if (details.code === 3040 || details.code === 3007 || details.code === 3008) return true;
+  if (details.code === 3040 || details.code === 3043 || details.code === 3007 || details.code === 3008) return true;
   if (details.status === 408 || details.status === 409 || details.status === 429 || details.status >= 500) return true;
-  return /out of capacity|capacity temporarily|temporarily unavailable|service busy|timed? ?out|overloaded|empty image result|try again/i.test(details.message);
+  return /out of capacity|capacity temporarily|temporarily unavailable|service busy|timed? ?out|overloaded|internal server error|empty image result|try again/i.test(details.message);
 }
 
 function wait(milliseconds) {
@@ -63,6 +63,9 @@ function imageErrorResponse(error, modelName) {
   }
   if (details.code === 3040 || /out of capacity|capacity temporarily/i.test(details.message)) {
     return json({ error: "The image service is temporarily at capacity. MIDCRUSH AI retried FLUX.2 Klein 9B and tried its smaller 4B fallback, but both were busy. Please try again shortly.", code: details.code }, 503);
+  }
+  if (details.code === 3043 || /internal server error/i.test(details.message)) {
+    return json({ error: "The image service encountered a temporary internal error (3043). MIDCRUSH AI retried its main model and tried its smaller fallback, but the service is still failing. Please try again shortly.", code: details.code || 3043 }, 503);
   }
   if (details.status === 429) {
     return json({ error: "The image service is temporarily rate-limited. MIDCRUSH AI already retried; please wait briefly before trying again.", code: 429 });
@@ -107,14 +110,54 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Please send a valid image request." }, 400);
   }
 
-  const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
-  if (!prompt) return json({ error: "Describe the image or edit you want." }, 400);
-  if (prompt.length > 1800) return json({ error: "Please keep your prompt under 1,800 characters." }, 400);
+  const requestedPrompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+  const isEdit = Boolean(body.isEdit);
+  if (!requestedPrompt) return json({ error: "Describe the image or edit you want." }, 400);
+  if (requestedPrompt.length > (isEdit ? 1200 : 1800)) {
+    return json({ error: isEdit ? "Please keep your photo-edit instructions under 1,200 characters." : "Please keep your prompt under 1,800 characters." }, 400);
+  }
 
-  const aspectRatio = typeof body.aspectRatio === "string" && dimensions[body.aspectRatio]
+  // Treat the uploaded photo as the source of truth. Restrict changes to the user's request
+  // and explicitly protect people, objects, framing and details that were not mentioned.
+  const prompt = isEdit
+    ? [
+        "Edit the supplied photograph itself; do not create a different photograph or reinterpret the scene.",
+        "Treat the uploaded image as the authoritative visual reference. Preserve the same subject and recognizable identity, facial structure, skin tone, hair, expression, proportions, pose, clothing and accessories unless the user explicitly asks to change one of these.",
+        "Keep the original camera angle, framing, composition, lighting, and all background details and objects that the user did not ask to change.",
+        "Make only the requested edit. Do not beautify, replace, add, remove, or redesign any unrequested subject or detail. When a style change is explicitly requested, apply that style while keeping the subject recognizably the same.",
+        "Requested edit: " + requestedPrompt
+      ].join(" ")
+    : requestedPrompt;
+  if (prompt.length > 1800) return json({ error: "Please shorten your photo-edit instructions and try again." }, 400);
+
+  let aspectRatio = typeof body.aspectRatio === "string" && (dimensions[body.aspectRatio] || body.aspectRatio === "original")
     ? body.aspectRatio
     : "1:1";
-  const [width, height] = dimensions[aspectRatio];
+  let [width, height] = dimensions[aspectRatio] || dimensions["1:1"];
+  if (isEdit && aspectRatio === "original") {
+    const originalWidth = Number(body.originalWidth);
+    const originalHeight = Number(body.originalHeight);
+    if (Number.isFinite(originalWidth) && Number.isFinite(originalHeight) &&
+        originalWidth >= 1 && originalHeight >= 1 &&
+        originalWidth <= 100000 && originalHeight <= 100000) {
+      const longest = Math.max(originalWidth, originalHeight);
+      const shortest = Math.min(originalWidth, originalHeight);
+      const scale = longest > 1920 ? 1920 / longest : shortest < 256 ? 256 / shortest : 1;
+      const proposedWidth = Math.round(originalWidth * scale);
+      const proposedHeight = Math.round(originalHeight * scale);
+      if (proposedWidth >= 256 && proposedWidth <= 1920 &&
+          proposedHeight >= 256 && proposedHeight <= 1920) {
+        width = proposedWidth;
+        height = proposedHeight;
+      } else {
+        aspectRatio = "1:1";
+        [width, height] = dimensions["1:1"];
+      }
+    } else {
+      aspectRatio = "1:1";
+      [width, height] = dimensions["1:1"];
+    }
+  }
 
   try {
     let image = null;
@@ -133,7 +176,7 @@ export async function onRequestPost({ request, env }) {
       form.append("prompt", prompt);
       form.append("width", String(width));
       form.append("height", String(height));
-      if (body.isEdit) form.append("guidance", "6");
+      if (isEdit) form.append("guidance", "6");
       if (body.image) {
         form.append("input_image_0", image, "reference-image");
         if (originalImage) form.append("input_image_1", originalImage, "original-identity-reference");
@@ -181,7 +224,7 @@ export async function onRequestPost({ request, env }) {
         lastError = error;
         const details = describeModelError(error);
         if (!isTemporaryImageError(details)) break;
-        if (attempt === 0) await wait(700);
+        if (attempt === 0) await wait(details.code === 3043 ? 1200 : 900);
       }
     }
 
