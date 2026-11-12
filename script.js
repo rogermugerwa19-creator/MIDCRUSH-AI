@@ -398,6 +398,41 @@ function renderWorkspace(info){
           return useWebSearch?answer.replace(/(?:\\\\+)?\*{1,3}/g,"").replace(/(?:\\\\+)?`{1,3}/g,""):answer;
         }
 
+
+        function renderAnswerWithInlineCitations(container,answer,sources){
+          container.replaceChildren();
+          const records=Array.isArray(sources)?sources:[];
+          const citationPattern=/\[(\d{1,2})\]/g;
+          let cursor=0;
+          let match;
+          while((match=citationPattern.exec(answer))!==null){
+            container.appendChild(document.createTextNode(answer.slice(cursor,match.index)));
+            const source=records[Number(match[1])-1];
+            let linked=false;
+            if(source&&typeof source.url==="string"){
+              try{
+                const url=new URL(source.url);
+                if(url.protocol==="https:"||url.protocol==="http:"){
+                  const link=document.createElement("a");
+                  link.href=url.toString();
+                  link.target="_blank";
+                  link.rel="noopener noreferrer";
+                  link.className="chat-inline-source";
+                  link.textContent=match[0];
+                  const title=String(source.title||url.hostname).slice(0,160);
+                  link.title="Open source "+match[1]+": "+title;
+                  link.setAttribute("aria-label","Open source "+match[1]+": "+title);
+                  container.appendChild(link);
+                  linked=true;
+                }
+              }catch{}
+            }
+            if(!linked)container.appendChild(document.createTextNode(match[0]));
+            cursor=citationPattern.lastIndex;
+          }
+          container.appendChild(document.createTextNode(answer.slice(cursor)));
+        }
+
         waiting.textContent=useWebSearch?"Preparing an answer…":"MIDCRUSH AI is thinking…";
         let data=await askModel(history.slice(-12));
         let combinedAnswer=cleanAnswer(data.response);
@@ -429,24 +464,7 @@ function renderWorkspace(info){
           }
         }
 
-        waiting.textContent=combinedAnswer;
-        if(Array.isArray(data.sources)&&data.sources.length){
-          const sourceBox=document.createElement("div");sourceBox.className="chat-web-sources";
-          const sourceTitle=document.createElement("strong");sourceTitle.textContent="Web sources";sourceBox.appendChild(sourceTitle);
-          data.sources.slice(0,12).forEach((source,index)=>{
-            try{
-              const url=new URL(source.url);
-              if(url.protocol!=="https:"&&url.protocol!=="http:")return;
-              const link=document.createElement("a");link.href=url.toString();link.target="_blank";link.rel="noopener noreferrer";
-              link.textContent="["+(index+1)+"] "+String(source.title||url.hostname).slice(0,120);sourceBox.appendChild(link);
-            }catch{}
-          });
-          waiting.appendChild(sourceBox);
-        }else if(useWebSearch){
-          const note=document.createElement("small");note.className="chat-web-note";
-          note.textContent="No web sources were attached to this answer.";
-          waiting.appendChild(note);
-        }
+        renderAnswerWithInlineCitations(waiting,combinedAnswer,data.sources);
         if(wasTruncated||continuationFailed){
           const note=document.createElement("small");note.className="chat-web-note";
           note.textContent="The answer may still be incomplete. Try asking for a shorter summary.";
