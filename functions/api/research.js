@@ -125,9 +125,12 @@ export async function onRequestPost({request,env}){
           const blockedHosts=["expertini.com","tavily.com","jamiiforums.com","studocu.com","teapawt.org","sotwe.com","xitter.cf","youtube.com","youtu.be","x.com","twitter.com","t.co","facebook.com","instagram.com"];
           if(blockedHosts.some(domain=>host===domain||host.endsWith("."+domain)))continue;
           const titleText=item.title.toLowerCase();
-          if(/\b(jobs?|vacancies|procurement|tenders?|directory|knowledge base|school hall|student life|tag:|archive|company profile)\b/.test(titleText))continue;
-          const evidence=(item.title+" "+item.content).toLowerCase();
-          if(!/\b(uneb|uganda national examinations board|uace|uce|ple)\b/.test(evidence))continue;
+          if(/\b(jobs?|vacancies|procurement|tenders?|directory|knowledge base|school hall|student life|tag:|archive|company profile|murder|serial killer)\b/.test(titleText))continue;
+          // Require the headline itself to identify UNEB or a specific national examination.
+          if(!/\b(uneb|uace|uce|ple)\b/.test(titleText))continue;
+          // The article extract must independently identify the same exam or examination body.
+          const bodyText=item.content.toLowerCase();
+          if(!/\b(uneb|uganda national examinations board|uace|uce|ple)\b/.test(bodyText))continue;
           const titleTerms=item.title.toLowerCase().match(/[a-z0-9]{4,}/g)||[];
           const stop=new Set(["uganda","national","examinations","examination","board","latest","news","today","2026","2025"]);
           const anchors=titleTerms.filter(word=>!stop.has(word));
