@@ -42,7 +42,7 @@ function isTemporaryImageError(details) {
   if (details.code === 3036) return false; // Daily free allocation, not a transient failure.
   if (details.code === 3040 || details.code === 3007 || details.code === 3008) return true;
   if (details.status === 408 || details.status === 409 || details.status === 429 || details.status >= 500) return true;
-  return /out of capacity|capacity temporarily|temporarily unavailable|service busy|timed? ?out|overloaded|try again/i.test(details.message);
+  return /out of capacity|capacity temporarily|temporarily unavailable|service busy|timed? ?out|overloaded|empty image result|try again/i.test(details.message);
 }
 
 function wait(milliseconds) {
@@ -62,7 +62,13 @@ function imageErrorResponse(error, modelName) {
     return json({ error: "The Cloudflare AI daily free allowance has been used up. It resets at 00:00 UTC. Try again after it resets.", code: details.code }, 429);
   }
   if (details.code === 3040 || /out of capacity|capacity temporarily/i.test(details.message)) {
-    return json({ error: "The image service is temporarily at capacity. MIDCRUSH AI tried again and checked its smaller fallback model, but the service is still busy. Please try again shortly.", code: details.code }, 503);
+    return json({ error: "The image service is temporarily at capacity. MIDCRUSH AI retried FLUX.2 Klein 9B and tried its smaller 4B fallback, but both were busy. Please try again shortly.", code: details.code }, 503);
+  }
+  if (details.status === 429) {
+    return json({ error: "The image service is temporarily rate-limited. MIDCRUSH AI already retried; please wait briefly before trying again.", code: 429 });
+  }
+  if (details.status >= 500) {
+    return json({ error: "Cloudflare's image service returned a temporary server error (HTTP " + details.status + "). MIDCRUSH AI retried and attempted its smaller fallback model. Please try again shortly.", code: details.status }, 503);
   }
   if (details.code === 3007 || details.code === 3008 || details.status === 408) {
     return json({ error: "The image service timed out while processing your photo. Your upload is still available; try Edit photo again.", code: details.code || details.status }, 504);
