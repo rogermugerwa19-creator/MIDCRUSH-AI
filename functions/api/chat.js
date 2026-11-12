@@ -36,7 +36,7 @@ async function callOpenAICompatible({ name, url, key, model, messages, headers =
     body: JSON.stringify({
       model,
       messages: [{ role: "system", content: systemPrompt }, ...messages.map((item, index) => image && index === messages.length - 1 && item.role === "user" ? { role: "user", content: [{ type: "text", text: item.content }, { type: "image_url", image_url: { url: image } }] } : item)],
-      max_tokens: 1400,
+      max_tokens: 1800,
       temperature: 0.35
     })
   });
@@ -60,7 +60,7 @@ async function callGemini(key, messages, image, systemPrompt = SYSTEM_PROMPT) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents,
-      generationConfig: { maxOutputTokens: 1400, temperature: 0.35 }
+      generationConfig: { maxOutputTokens: 1800, temperature: 0.35 }
     })
   });
   const data = await response.json().catch(() => ({}));
@@ -77,7 +77,7 @@ async function callGemini(key, messages, image, systemPrompt = SYSTEM_PROMPT) {
 async function callCloudflare(ai, messages, systemPrompt = SYSTEM_PROMPT) {
   const result = await ai.run("@cf/zai-org/glm-4.7-flash", {
     messages: [{ role: "system", content: systemPrompt }, ...messages],
-    max_completion_tokens: 1400,
+    max_completion_tokens: 1800,
     temperature: 0.35
   });
   const answer = getOpenAIAnswer(result);
@@ -107,7 +107,7 @@ async function callCloudflareVision(ai, messages, image, systemPrompt = SYSTEM_P
   ];
   const result = await ai.run("@cf/meta/llama-3.2-11b-vision-instruct", {
     messages: multimodalMessages,
-    max_tokens: 1400,
+    max_tokens: 1800,
     temperature: 0.35
   });
   const answer = getOpenAIAnswer(result) || extractText(result?.response);
