@@ -9,7 +9,7 @@ const toolInfo = {
   music:{title:"AI Music",kicker:"CREATE YOUR SOUND",description:"Explore music ideas, styles and audio creation.",icon:"music-2"},
   website:{title:"Website Builder",kicker:"DESIGN & LAUNCH",description:"Generate, preview and download complete websites from a description.",icon:"panels-top-left",kind:"website"},
   internet:{title:"Internet & Connections",kicker:"EXPLORE & CONNECT",description:"Search public websites and explore secure platform integrations.",icon:"globe",kind:"internet"},
-  editing:{title:"Photo Editing",kicker:"REFINE & REMIX",description:"Explore creative edits and image improvements.",icon:"wand-sparkles"}
+  editing:{title:"Photo Editing",kicker:"REFINE & REMIX",description:"Upload a photo, describe the changes you want, and create an edited version.",icon:"wand-sparkles",kind:"editing"}
 };
 const sidebar=document.getElementById("sidebar");
 const homePage=document.getElementById("homePage");
@@ -17,6 +17,264 @@ const toolPage=document.getElementById("toolPage");
 const toast=document.getElementById("toast");
 let toastTimer;
 function showToast(message){toast.textContent=message;toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("show"),2600)}
+
+function renderPhotoEditorWorkspace(target){
+  target.innerHTML = \`
+    <div class="workspace-card photo-editor-workspace">
+      <div class="photo-editor-intro">
+        <div class="workspace-label">Edit a photo with AI</div>
+        <p>Upload a photo, describe exactly what you want changed, and let MIDCRUSH AI create a new version. Your original photo stays available for comparison.</p>
+      </div>
+
+      <div class="photo-editor-layout">
+        <section class="photo-editor-upload-panel">
+          <div class="photo-editor-section-heading"><span>01</span><div><strong>Choose your photo</strong><small>JPG, PNG or WebP · up to 20 MB before optimization</small></div></div>
+          <input id="photoEditFile" class="photo-edit-file-input" type="file" accept="image/jpeg,image/png,image/webp">
+          <label class="photo-edit-dropzone" id="photoEditDropzone" for="photoEditFile">
+            <span class="photo-edit-upload-icon"><i data-lucide="image-plus"></i></span>
+            <strong>Click to upload a photo</strong>
+            <span>Choose an image from your device</span>
+            <small>Your photo is sent securely to the image-editing service for processing.</small>
+          </label>
+          <div class="photo-edit-upload-preview" id="photoEditUploadPreview" hidden>
+            <img id="photoEditUploadImage" alt="Selected photo preview">
+            <div class="photo-edit-file-details"><strong id="photoEditFileName">Selected photo</strong><span id="photoEditDimensions">Ready to edit</span></div>
+            <button type="button" class="photo-edit-remove" id="photoEditRemove" aria-label="Remove selected photo"><i data-lucide="x"></i></button>
+          </div>
+          <div class="photo-editor-privacy-note"><i data-lucide="shield-check"></i><span>Only upload a photo you have permission to edit. The original file is not replaced.</span></div>
+        </section>
+
+        <form class="photo-editor-form" id="photoEditForm">
+          <div class="photo-editor-section-heading"><span>02</span><div><strong>Describe your edit</strong><small>Tell the AI what to change and what to keep.</small></div></div>
+          <label for="photoEditPrompt">What would you like to change?</label>
+          <textarea id="photoEditPrompt" rows="5" maxlength="1200" required placeholder="Example: Replace the background with a clean studio setting. Keep the person's face, expression, pose and clothing unchanged."></textarea>
+          <div class="photo-edit-quick-label">Quick edit ideas</div>
+          <div class="photo-edit-presets">
+            <button type="button" data-photo-edit-prompt="Improve the lighting, contrast and colours naturally. Reduce noise and improve clarity while keeping the person's identity, facial features, expression, pose, clothing and scene unchanged.">Enhance photo</button>
+            <button type="button" data-photo-edit-prompt="Replace only the background with a clean professional studio backdrop. Keep the main subject's identity, facial features, hair, pose and clothing unchanged.">Change background</button>
+            <button type="button" data-photo-edit-prompt="Turn this photo into a polished high-quality 3D animated portrait. Preserve the main subject's recognisable facial features, expression, pose and clothing.">3D animated style</button>
+            <button type="button" data-photo-edit-prompt="Apply a warm cinematic colour grade with balanced lighting and natural colours. Preserve the people, objects and composition in the original photo.">Cinematic colour</button>
+          </div>
+          <div class="photo-editor-options">
+            <div class="photo-editor-field">
+              <label for="photoEditRatio">Output shape</label>
+              <select id="photoEditRatio">
+                <option value="original">Keep original shape</option>
+                <option value="1:1">Square — 1:1</option>
+                <option value="4:3">Classic — 4:3</option>
+                <option value="3:2">Landscape — 3:2</option>
+                <option value="16:9">Wide — 16:9</option>
+                <option value="2:3">Portrait — 2:3</option>
+                <option value="9:16">Tall — 9:16</option>
+              </select>
+            </div>
+            <button type="submit" class="image-generate-button photo-edit-submit" id="photoEditButton" disabled><i data-lucide="wand-sparkles"></i> Edit photo</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="photo-edit-status" id="photoEditStatus" role="status" aria-live="polite">Choose a photo and describe the edit to get started.</div>
+      <section class="photo-edit-result" id="photoEditResult" hidden>
+        <div class="photo-edit-result-heading"><div><span class="section-kicker">YOUR RESULT</span><h3>Edited photo</h3><p>Compare the original with the new version.</p></div><a class="image-download-button" id="photoEditDownload" download="midcrush-edited-photo.jpg"><i data-lucide="download"></i> Save edited photo</a></div>
+        <div class="photo-edit-comparison">
+          <figure><figcaption>Original photo</figcaption><img id="photoEditBefore" alt="Original uploaded photo"></figure>
+          <figure><figcaption>Edited photo</figcaption><img id="photoEditAfter" alt="AI-edited photo"></figure>
+        </div>
+        <div class="photo-edit-result-actions"><span>Generated with FLUX.2 Klein 9B</span><button type="button" class="chat-action" id="photoEditStartOver"><i data-lucide="refresh-cw"></i> Start another edit</button></div>
+      </section>
+      <p class="photo-editor-model-note">Photo editing uses Cloudflare Workers AI. The uploaded image is resized to fit the model's image-input limits before editing. Availability depends on the remaining AI usage allowance.</p>
+    </div>\`;
+
+  const fileInput=target.querySelector("#photoEditFile");
+  const dropzone=target.querySelector("#photoEditDropzone");
+  const uploadPreview=target.querySelector("#photoEditUploadPreview");
+  const uploadImage=target.querySelector("#photoEditUploadImage");
+  const fileName=target.querySelector("#photoEditFileName");
+  const dimensions=target.querySelector("#photoEditDimensions");
+  const removeButton=target.querySelector("#photoEditRemove");
+  const form=target.querySelector("#photoEditForm");
+  const prompt=target.querySelector("#photoEditPrompt");
+  const ratioSelect=target.querySelector("#photoEditRatio");
+  const editButton=target.querySelector("#photoEditButton");
+  const status=target.querySelector("#photoEditStatus");
+  const resultSection=target.querySelector("#photoEditResult");
+  const beforeImage=target.querySelector("#photoEditBefore");
+  const afterImage=target.querySelector("#photoEditAfter");
+  const download=target.querySelector("#photoEditDownload");
+  const startOver=target.querySelector("#photoEditStartOver");
+
+  let optimizedImage="";
+  let originalPreviewUrl="";
+  let originalAspectRatio=1;
+  let busy=false;
+
+  function releaseOriginalPreview(){
+    if(originalPreviewUrl){
+      URL.revokeObjectURL(originalPreviewUrl);
+      originalPreviewUrl="";
+    }
+  }
+
+  function closestSupportedRatio(value){
+    const ratios=["1:1","16:9","9:16","4:3","3:2","2:3"];
+    return ratios.reduce((best,current)=>{
+      const [bw,bh]=best.split(":").map(Number);
+      const [cw,ch]=current.split(":").map(Number);
+      const bestDistance=Math.abs(Math.log((bw/bh)/value));
+      const currentDistance=Math.abs(Math.log((cw/ch)/value));
+      return currentDistance<bestDistance?current:best;
+    },ratios[0]);
+  }
+
+  async function preparePhoto(file){
+    if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type)){
+      throw new Error("Choose a JPG, PNG or WebP image.");
+    }
+    if(file.size>20*1024*1024){
+      throw new Error("Choose an image smaller than 20 MB.");
+    }
+    if(typeof createImageBitmap!=="function"){
+      throw new Error("This browser cannot prepare the image. Try an updated browser.");
+    }
+    let bitmap;
+    try{
+      bitmap=await createImageBitmap(file);
+    }catch{
+      throw new Error("This image could not be opened. Try another JPG, PNG or WebP photo.");
+    }
+    const sourceWidth=bitmap.width;
+    const sourceHeight=bitmap.height;
+    originalAspectRatio=sourceWidth/sourceHeight;
+    const scale=Math.min(1,500/Math.max(sourceWidth,sourceHeight));
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(sourceWidth*scale));
+    canvas.height=Math.max(1,Math.round(sourceHeight*scale));
+    const context=canvas.getContext("2d");
+    if(!context){
+      bitmap.close?.();
+      throw new Error("Your browser could not prepare this photo.");
+    }
+    context.fillStyle="#ffffff";
+    context.fillRect(0,0,canvas.width,canvas.height);
+    context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+    bitmap.close?.();
+    return {
+      dataUrl:canvas.toDataURL("image/jpeg",0.9),
+      width:sourceWidth,
+      height:sourceHeight
+    };
+  }
+
+  function clearSelectedPhoto(){
+    optimizedImage="";
+    releaseOriginalPreview();
+    fileInput.value="";
+    uploadImage.removeAttribute("src");
+    uploadPreview.hidden=true;
+    dropzone.hidden=false;
+    editButton.disabled=true;
+    resultSection.hidden=true;
+    status.textContent="Choose a photo and describe the edit to get started.";
+    if(window.lucide)lucide.createIcons();
+  }
+
+  fileInput.addEventListener("change",async()=>{
+    const file=fileInput.files&&fileInput.files[0];
+    if(!file)return;
+    editButton.disabled=true;
+    status.textContent="Preparing your photo…";
+    try{
+      const prepared=await preparePhoto(file);
+      optimizedImage=prepared.dataUrl;
+      releaseOriginalPreview();
+      originalPreviewUrl=URL.createObjectURL(file);
+      uploadImage.src=originalPreviewUrl;
+      fileName.textContent=file.name;
+      dimensions.textContent=prepared.width+" × "+prepared.height+" pixels · ready to edit";
+      uploadPreview.hidden=false;
+      dropzone.hidden=true;
+      resultSection.hidden=true;
+      editButton.disabled=false;
+      status.textContent="Photo ready. Describe the change you want, then select Edit photo.";
+    }catch(error){
+      optimizedImage="";
+      status.textContent=error.message||"Could not prepare this photo.";
+      showToast(status.textContent);
+    }finally{
+      fileInput.value="";
+    }
+  });
+
+  removeButton.addEventListener("click",clearSelectedPhoto);
+
+  target.querySelectorAll("[data-photo-edit-prompt]").forEach(button=>{
+    button.addEventListener("click",()=>{
+      prompt.value=button.dataset.photoEditPrompt||"";
+      prompt.focus();
+    });
+  });
+
+  form.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(busy)return;
+    if(!optimizedImage){
+      status.textContent="Upload a photo before starting an edit.";
+      return;
+    }
+    const editPrompt=prompt.value.trim();
+    if(!editPrompt){
+      prompt.focus();
+      return;
+    }
+    busy=true;
+    editButton.disabled=true;
+    editButton.innerHTML='<i data-lucide="loader-circle"></i> Editing photo…';
+    status.textContent="MIDCRUSH AI is editing your photo. Keep this page open while the image is being created.";
+    resultSection.hidden=true;
+    if(window.lucide)lucide.createIcons();
+    try{
+      const selectedRatio=ratioSelect.value==="original"
+        ?closestSupportedRatio(originalAspectRatio)
+        :ratioSelect.value;
+      const response=await fetch("/api/image",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          prompt:editPrompt,
+          image:optimizedImage,
+          isEdit:true,
+          aspectRatio:selectedRatio
+        })
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.error||"Photo editing failed. Please try again.");
+      if(typeof data.image!=="string"||!data.image.startsWith("data:image/")){
+        throw new Error("The image service returned an invalid edited photo.");
+      }
+      beforeImage.src=originalPreviewUrl;
+      afterImage.src=data.image;
+      download.href=data.image;
+      resultSection.hidden=false;
+      status.textContent="Your edited photo is ready.";
+      resultSection.scrollIntoView({behavior:"smooth",block:"start"});
+    }catch(error){
+      status.textContent=error.message||"Photo editing failed. Please try again.";
+    }finally{
+      busy=false;
+      editButton.disabled=!optimizedImage;
+      editButton.innerHTML='<i data-lucide="wand-sparkles"></i> Edit photo';
+      if(window.lucide)lucide.createIcons();
+    }
+  });
+
+  startOver.addEventListener("click",()=>{
+    clearSelectedPhoto();
+    prompt.value="";
+    status.textContent="Upload another photo to start a new edit.";
+    target.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+}
+
 function navigate(page){
   const info=toolInfo[page];
   document.querySelectorAll(".nav-item").forEach(btn=>btn.classList.toggle("active",btn.dataset.page===page));
@@ -1158,6 +1416,8 @@ function renderWorkspace(info){
     }
     imageForm.addEventListener("submit",event=>{event.preventDefault();generateImage();});
     regenerateImageButton.addEventListener("click",generateImage);
+  }else if(info.kind==="editing"){
+    renderPhotoEditorWorkspace(target);
   }else if(info.kind==="website"){
     target.innerHTML = "<div class=\"workspace-card website-builder-workspace\">\
       <div class=\"website-builder-intro\"><div class=\"workspace-label\">Build a complete website with AI</div><p>Create your whole website in one HTML file with several detailed sections and navigation tabs. MIDCRUSH AI chooses the tabs to fit your description instead of automatically adding standard sections.</p></div>\
