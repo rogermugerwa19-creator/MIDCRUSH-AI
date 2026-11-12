@@ -64,7 +64,7 @@ export async function onRequestPost({request,env}){
   try{
     const searchQueries=isUnebNews?[
       query+" Uganda UNEB latest examination news "+kampalaDate,
-      "UNEB 74 arrested 11 taken to court 2026 PLE examination malpractice Radio Sapientia "+kampalaDate,
+      "site:radiosapientia.com 74 arrested 11 taken to court 2026 PLE examination malpractice UNEB "+kampalaDate,
       "Uganda UNEB UACE examinations candidates first written papers timetable latest "+kampalaDate,
       "Uganda UNEB PLE malpractice arrests teachers charged public tip-offs November 2026"
     ]:[scope&&includeDomains[scope]?query+" site:"+includeDomains[scope][0]:query];
@@ -91,7 +91,7 @@ export async function onRequestPost({request,env}){
       return {
         title:clean(item?.title,180)||"Untitled result",
         url:safeUrl(item?.url),
-        content:clean(raw,type==="news"?1800:900),
+        content:clean(raw,type==="news"?2400:900),
         score:Number.isFinite(item?.score)?item.score:null,
         publishedDate:clean(item?.published_date,40),
         favicon:safeUrl(item?.favicon),
@@ -115,9 +115,11 @@ export async function onRequestPost({request,env}){
         let host="";
         try{host=new URL(item.url).hostname.toLowerCase();}catch{}
         if(/(^|\.)tiktok\.com$/.test(host)&&/\/discover\//i.test(item.url))continue;
-        if(isUnebNews&&/(^|\/)tag\//i.test(new URL(item.url).pathname))continue;
-        if(isUnebNews&&/(^|\.)(youtube\.com|youtu\.be|x\.com|twitter\.com|t\.co|facebook\.com|instagram\.com|teapawt\.org|sotwe\.com|xitter\.cf)$/.test(host))continue;
+        if(isUnebNews&&/(^|\\/)(tag|category|categories|archive|archives|jobs|job|procurement|tenders?)(\\/|$)/i.test(new URL(item.url).pathname))continue;
+        if(isUnebNews&&/(^|\\.)(expertini\\.com|tavily\\.com|jamiiforums\\.com|studocu\\.com|teapawt\\.org|sotwe\\.com|xitter\\.cf|youtube\\.com|youtu\\.be|x\\.com|twitter\\.com|t\\.co|facebook\\.com|instagram\\.com)$/.test(host))continue;
         if(isUnebNews){
+          const titleText=item.title.toLowerCase();
+          if(/\\b(jobs?|vacancies|procurement|tenders?|directory|knowledge base|school hall|student life|tag:|archive|company profile)\\b/.test(titleText))continue;
           const titleText=item.title.toLowerCase();
           // Keep actual news headlines; discard radio programme pages and generic directory/listing pages.
           if(!/\b(uneb|uace|uce|ple|examinations?|exams?|malpractice|candidates?|school|teacher|arrests?|scouts?|exam papers?)\b/.test(titleText))continue;
