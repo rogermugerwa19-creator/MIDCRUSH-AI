@@ -6,6 +6,17 @@ function json(data,status=200){
 function clean(value,max=240){
   return typeof value==="string"?value.replace(/[\u0000-\u001f\u007f]/g," ").trim().slice(0,max):"";
 }
+
+function cleanWithEnding(value,max=2400){
+  if(typeof value!=="string")return "";
+  const text=value.replace(/[\u0000-\u001f\u007f]/g," ").trim();
+  if(text.length<=max)return text;
+  const marker=" … [article ending] … ";
+  const room=max-marker.length;
+  const headLength=Math.floor(room*0.72);
+  const tailLength=room-headLength;
+  return text.slice(0,headLength)+marker+text.slice(-tailLength);
+}
 function safeUrl(value){
   try{
     const url=new URL(value);
@@ -91,7 +102,7 @@ export async function onRequestPost({request,env}){
       return {
         title:clean(item?.title,180)||"Untitled result",
         url:safeUrl(item?.url),
-        content:clean(raw,type==="news"?2400:900),
+        content:isUnebNews?cleanWithEnding(raw,2400):clean(raw,type==="news"?2400:900),
         score:Number.isFinite(item?.score)?item.score:null,
         publishedDate:clean(item?.published_date,40),
         favicon:safeUrl(item?.favicon),
