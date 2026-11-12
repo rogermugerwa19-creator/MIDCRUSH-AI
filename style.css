@@ -357,5 +357,5 @@
 .chat-web-note{display:block;margin-top:9px;color:#c4a4a4;font-size:9px;line-height:1.5}
 
 /* Numbered web citations link directly to their source in the answer */
-.chat-inline-source{display:inline-block;margin:0 2px;color:#91dce8;font-size:.9em;font-weight:700;text-decoration:none;vertical-align:baseline}
-.chat-inline-source:hover,.chat-inline-source:focus{color:#d4f8ff;text-decoration:underline;outline:none}
+.chat-inline-source{display:inline;max-width:360px;margin:0 3px;color:#91dce8;font-size:.88em;font-weight:600;text-decoration:underline;text-decoration-color:#91dce866;text-underline-offset:2px;overflow-wrap:anywhere;vertical-align:baseline}
+.chat-inline-source:hover,.chat-inline-source:focus{color:#d4f8ff;text-decoration-color:currentColor;outline:none}
