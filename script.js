@@ -107,6 +107,8 @@ function renderPhotoEditorWorkspace(target){
   let optimizedImage="";
   let originalPreviewUrl="";
   let originalAspectRatio=1;
+  let originalPhotoWidth=0;
+  let originalPhotoHeight=0;
   let busy=false;
 
   function releaseOriginalPreview(){
@@ -146,7 +148,7 @@ function renderPhotoEditorWorkspace(target){
     const sourceWidth=bitmap.width;
     const sourceHeight=bitmap.height;
     originalAspectRatio=sourceWidth/sourceHeight;
-    const scale=Math.min(1,500/Math.max(sourceWidth,sourceHeight));
+    const scale=Math.min(1,511/Math.max(sourceWidth,sourceHeight));
     const canvas=document.createElement("canvas");
     canvas.width=Math.max(1,Math.round(sourceWidth*scale));
     canvas.height=Math.max(1,Math.round(sourceHeight*scale));
@@ -168,6 +170,8 @@ function renderPhotoEditorWorkspace(target){
 
   function clearSelectedPhoto(){
     optimizedImage="";
+    originalPhotoWidth=0;
+    originalPhotoHeight=0;
     releaseOriginalPreview();
     fileInput.value="";
     uploadImage.removeAttribute("src");
@@ -187,6 +191,8 @@ function renderPhotoEditorWorkspace(target){
     try{
       const prepared=await preparePhoto(file);
       optimizedImage=prepared.dataUrl;
+      originalPhotoWidth=prepared.width;
+      originalPhotoHeight=prepared.height;
       releaseOriginalPreview();
       originalPreviewUrl=URL.createObjectURL(file);
       uploadImage.src=originalPreviewUrl;
@@ -235,7 +241,7 @@ function renderPhotoEditorWorkspace(target){
     if(window.lucide)lucide.createIcons();
     try{
       const selectedRatio=ratioSelect.value==="original"
-        ?closestSupportedRatio(originalAspectRatio)
+        ?"original"
         :ratioSelect.value;
       const response=await fetch("/api/image",{
         method:"POST",
@@ -244,7 +250,9 @@ function renderPhotoEditorWorkspace(target){
           prompt:editPrompt,
           image:optimizedImage,
           isEdit:true,
-          aspectRatio:selectedRatio
+          aspectRatio:selectedRatio,
+          originalWidth:originalPhotoWidth,
+          originalHeight:originalPhotoHeight
         })
       });
       const data=await response.json().catch(()=>({}));
