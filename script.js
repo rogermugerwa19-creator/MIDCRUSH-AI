@@ -19,7 +19,7 @@ let toastTimer;
 function showToast(message){toast.textContent=message;toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("show"),2600)}
 
 function renderPhotoEditorWorkspace(target){
-  target.innerHTML = \`
+  target.innerHTML = `
     <div class="workspace-card photo-editor-workspace">
       <div class="photo-editor-intro">
         <div class="workspace-label">Edit a photo with AI</div>
@@ -83,7 +83,7 @@ function renderPhotoEditorWorkspace(target){
         <div class="photo-edit-result-actions"><span>Generated with FLUX.2 Klein 9B</span><button type="button" class="chat-action" id="photoEditStartOver"><i data-lucide="refresh-cw"></i> Start another edit</button></div>
       </section>
       <p class="photo-editor-model-note">Photo editing uses Cloudflare Workers AI. The uploaded image is resized to fit the model's image-input limits before editing. Availability depends on the remaining AI usage allowance.</p>
-    </div>\`;
+    </div>`;
 
   const fileInput=target.querySelector("#photoEditFile");
   const dropzone=target.querySelector("#photoEditDropzone");
